@@ -28,6 +28,16 @@ inline double MagnifyFactor(double magnification) {
   return std::max(0.05, 1 + magnification);
 }
 
+inline Rect Moved(Rect frame, double dx, double dy, Rect visible) {
+  double x = std::clamp(frame.x + dx, visible.x, std::max(visible.x, visible.maxX() - frame.w));
+  double y = std::clamp(frame.y + dy, visible.y, std::max(visible.y, visible.maxY() - frame.h));
+  return {x, y, frame.w, frame.h};
+}
+
+inline double ExpandedWidth(double aspect, Rect visible) {
+  return std::min(visible.w * 0.65, visible.h * 0.75 * aspect);
+}
+
 inline void WidthLimits(double aspect, Size minSize, Size maxSize, Rect visible, double *low, double *high) {
   *low = std::max({minSize.w, minSize.h * aspect, 1.0});
   *high = std::min({maxSize.w, maxSize.h * aspect, visible.w, visible.h * aspect});

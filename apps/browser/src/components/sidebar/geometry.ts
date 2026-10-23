@@ -7,6 +7,7 @@ export const GROUP_PAD = 2;
 export const GROUP_BORDER = 0.5;
 export const GROUP_RADIUS = 12;
 export const GROUP_HEADER_RADIUS = GROUP_RADIUS - GROUP_BORDER;
+export const GROUP_ROW_RADIUS = GROUP_RADIUS - GROUP_BORDER - GROUP_PAD;
 const ROW = layout.rowHeight;
 const GAP = layout.rowGap;
 

@@ -19,7 +19,7 @@ import { IconButton, useHover } from "../primitives";
 import { useLiveColors, type LiveColors } from "../live/colors";
 import { clickMods, TabRow } from "./TabRow";
 import { Fold, useFold, type FoldEntry } from "./Fold";
-import { GROUP_BORDER, GROUP_HEADER_RADIUS, GROUP_PAD, GROUP_RADIUS } from "./geometry";
+import { GROUP_BORDER, GROUP_HEADER_RADIUS, GROUP_PAD, GROUP_RADIUS, GROUP_ROW_RADIUS } from "./geometry";
 import { dismissHover, useRowHover } from "./hover";
 import { openLiveFolderMenu, openLiveItemMenu } from "./liveMenus";
 import { registerRow } from "./state";
@@ -70,7 +70,7 @@ function LiveFolderBlock({ folderId, windowId }: { folderId: string; windowId: s
   const entries: FoldEntry[] = rows.length
     ? rows.map((row) => ({ key: row.key, node: <FolderRowView row={row} folderId={folderId} windowId={windowId} /> }))
     : [{ key: "note", node: <FolderNote folderId={folderId} /> }];
-  for (const id of strays) entries.push({ key: `stray:${id}`, node: <TabRow tabId={id} /> });
+  for (const id of strays) entries.push({ key: `stray:${id}`, node: <TabRow tabId={id} inGroup /> });
   if (completed) entries.push({ key: "completed", node: <CompletedFooter folderId={folderId} windowId={windowId} /> });
   const keep = !activeTab
     ? null
@@ -208,7 +208,7 @@ function NoteRow({ text, icon, spinner, onPress }: { text: string; icon?: string
   const colors = useLiveColors();
   const { hovered, hoverProps } = useHover();
   const body = (
-    <View style={{ height: 28, flexDirection: "row", alignItems: "center", paddingLeft: 9, paddingRight: 6, gap: 6, borderRadius: 8, backgroundColor: onPress && hovered ? theme.rowHover : undefined }}>
+    <View style={{ height: 28, flexDirection: "row", alignItems: "center", paddingLeft: 9, paddingRight: 6, gap: 6, borderRadius: GROUP_ROW_RADIUS, backgroundColor: onPress && hovered ? theme.rowHover : undefined }}>
       {spinner ? <Spinner /> : icon ? <Symbol name={icon} size={10} color={colors.pending} style={{ width: 16, height: 16 }} /> : null}
       <Text numberOfLines={2} style={{ flex: 1, fontSize: 12, color: theme.textSecondary }}>
         {text}
@@ -243,7 +243,7 @@ function MoreRow({ folderId, section, count }: { folderId: string; section: stri
   return (
     <View {...hoverProps}>
       <Pressable onPress={() => setLive((s) => ({ showAll: { ...s.showAll, [`${folderId}:${section}`]: true } }))}>
-        <View style={{ height: 26, borderRadius: 8, flexDirection: "row", alignItems: "center", paddingLeft: 9, backgroundColor: hovered ? theme.rowHover : undefined }}>
+        <View style={{ height: 26, borderRadius: GROUP_ROW_RADIUS, flexDirection: "row", alignItems: "center", paddingLeft: 9, backgroundColor: hovered ? theme.rowHover : undefined }}>
           <Symbol name="ellipsis" size={11} color={theme.textSecondary} style={{ width: 16, height: 16 }} />
           <Text style={{ marginLeft: 5, fontSize: 12, color: theme.textSecondary }}>Show {count} More</Text>
         </View>
@@ -266,7 +266,7 @@ function StackRow({ folderId, windowId, stack }: { folderId: string; windowId: s
           onPress={() => setLive((s) => ({ expandedStacks: { ...s.expandedStacks, [stack.id]: collapsed } }))}
           accessibilityLabel={collapsed ? "Expand pull request stack" : "Collapse pull request stack"}
         >
-          <View style={{ height: 26, borderRadius: 8, flexDirection: "row", alignItems: "center", paddingLeft: 9, paddingRight: 8, backgroundColor: hovered ? theme.rowHover : undefined }}>
+          <View style={{ height: 26, borderRadius: GROUP_ROW_RADIUS, flexDirection: "row", alignItems: "center", paddingLeft: 9, paddingRight: 8, backgroundColor: hovered ? theme.rowHover : undefined }}>
             <Symbol name="square.stack.3d.up" size={11} color={theme.textSecondary} style={{ width: 16, height: 16 }} />
             <Text numberOfLines={1} style={{ flex: 1, marginLeft: 5, fontSize: 12, fontWeight: "500", color: theme.textSecondary }}>
               {repo} stack
@@ -456,7 +456,7 @@ function CompletedFooter({ folderId, windowId }: { folderId: string; windowId: s
   };
   return (
     <View onMouseEnter={enter} onMouseLeave={leave} style={{ gap: layout.rowGap }}>
-      <View style={{ height: 24, flexDirection: "row", alignItems: "center", paddingLeft: 9, borderRadius: 8, backgroundColor: open ? theme.rowHover : undefined }}>
+      <View style={{ height: 24, flexDirection: "row", alignItems: "center", paddingLeft: 9, borderRadius: GROUP_ROW_RADIUS, backgroundColor: open ? theme.rowHover : undefined }}>
         <Symbol name="checkmark.circle" size={11} color={theme.textSecondary} style={{ width: 16, height: 16 }} />
         <Text style={{ marginLeft: 5, fontSize: 12, color: theme.textSecondary }}>{shown.length} Completed</Text>
       </View>
@@ -464,7 +464,7 @@ function CompletedFooter({ folderId, windowId }: { folderId: string; windowId: s
         ? shown.slice(0, 8).map((c) => (
             <Pressable key={c.item.id} onPress={() => openLiveItem(windowId, folderId, c.item)}>
               {({ pressed }) => (
-                <View style={{ height: 28, borderRadius: 8, flexDirection: "row", alignItems: "center", paddingLeft: 9, paddingRight: 8, backgroundColor: pressed ? theme.tabPressed : undefined, opacity: 0.75 }}>
+                <View style={{ height: 28, borderRadius: GROUP_ROW_RADIUS, flexDirection: "row", alignItems: "center", paddingLeft: 9, paddingRight: 8, backgroundColor: pressed ? theme.tabPressed : undefined, opacity: 0.75 }}>
                   <Symbol name={COMPLETION_GLYPH[c.state].symbol} size={12} color={colors[COMPLETION_GLYPH[c.state].color]} style={{ width: 16, height: 16 }} />
                   <FadeLabel text={c.item.title} fontSize={12.5} color={theme.textSecondary} style={{ flex: 1, height: 17, marginLeft: 5 }} />
                 </View>

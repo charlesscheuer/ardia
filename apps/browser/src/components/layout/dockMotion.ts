@@ -30,7 +30,7 @@ export const TOP_STRIP_LIGHTS_CENTER: readonly [number, number] = [20.75, 20.75]
 
 export const PEEK_ORIGIN: readonly [number, number] = [5, 5];
 export const PEEK_BOTTOM = 5;
-export const PEEK_RADIUS = 12;
+export const PEEK_RADIUS = 11;
 
 export function lightsCenter(offset: number, down = 0, base: readonly [number, number] = LIGHTS_CENTER): [number, number] | null {
   const dx = Math.round(offset * 2) / 2;

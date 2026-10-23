@@ -26,6 +26,7 @@ constexpr CGFloat kRimAlpha = 0.17;
 
 NSString *const kKeepOnTopDefault = @"ACPictureInPictureKeepOnTop";
 NSString *const kZoomDefault = @"ACPictureInPictureZoom";
+NSString *const kScrollMoveDefault = @"ACPictureInPictureScrollMove";
 NSString *const kThrowDefault = @"ACPictureInPictureThrow";
 const void *const kControllerKey = &kControllerKey;
 const void *const kZoomKey = &kZoomKey;
@@ -1026,6 +1027,8 @@ static __weak NSWindow *gSwipeMomentum;
   double _target;
   NSPoint _pointer;
   NSTimer *_ease;
+  BOOL _expanded;
+  NSRect _beforeExpand;
 }
 
 + (BOOL)zooms:(NSWindow *)window {
@@ -1074,11 +1077,24 @@ static __weak NSWindow *gZoomGesture;
   NSWindow *window = [self windowFor:event];
   BOOL command = (event.modifierFlags & NSEventModifierFlagCommand) != 0;
   BOOL scroll = event.type == NSEventTypeScrollWheel;
+  if (event.type == NSEventTypeSmartMagnify) {
+    if (!window || ![self zooms:window] || ![self enabled]) return NO;
+    [[self forWindow:window] toggleExpanded];
+    return YES;
+  }
   if (scroll) {
     NSEventPhase phase = event.phase, momentum = event.momentumPhase;
     BOOL wheel = phase == NSEventPhaseNone && momentum == NSEventPhaseNone;
     if (wheel || (phase & (NSEventPhaseBegan | NSEventPhaseMayBegin))) gZoomGesture = nil;
     if (gZoomGesture) window = gZoomGesture;
+    if (!command && gZoomGesture != window && event.hasPreciseScrollingDeltas && [self scrollMoveEnabled]) {
+      if (!window || ![self zooms:window] || ![self enabled]) return NO;
+      if (momentum & (NSEventPhaseEnded | NSEventPhaseCancelled)) return YES;
+      double dx = event.scrollingDeltaX, moveDy = event.scrollingDeltaY;
+      if (dx == 0 && moveDy == 0) return YES;
+      [[self forWindow:window] moveByDeltaX:dx deltaY:-moveDy];
+      return YES;
+    }
     if (!window || (!command && gZoomGesture != window)) return NO;
     if (![self zooms:window] || ![self enabled]) return NO;
     if (!wheel) gZoomGesture = window;
@@ -1106,9 +1122,15 @@ static __weak NSWindow *gZoomGesture;
   return value ? [value boolValue] : YES;
 }
 
++ (BOOL)scrollMoveEnabled {
+  id value = [NSUserDefaults.standardUserDefaults objectForKey:kScrollMoveDefault];
+  return value ? [value boolValue] : YES;
+}
+
 - (void)zoomBy:(double)factor at:(NSPoint)pointer ease:(BOOL)ease {
   NSWindow *window = _window;
   [[ACPiPController forWindow:window] stopMotion];
+  _expanded = NO;
   NSRect frame = window.frame;
   if (!NSEqualRects(frame, _last) || _width <= 0) {
     double aspect = NSWidth(frame) / MAX(NSHeight(frame), 1);
@@ -1141,6 +1163,42 @@ static __weak NSWindow *gZoomGesture;
   }];
   [NSRunLoop.currentRunLoop addTimer:_ease forMode:NSRunLoopCommonModes];
   _last = frame;
+}
+
+- (void)moveByDeltaX:(double)dx deltaY:(double)dy {
+  NSWindow *window = _window;
+  [[ACPiPController forWindow:window] stopMotion];
+  [_ease invalidate], _ease = nil, _target = 0;
+  _expanded = NO;
+  NSRect frame = window.frame;
+  ardiacore_pip_zoom::Rect moved = ardiacore_pip_zoom::Moved(
+      {NSMinX(frame), NSMinY(frame), NSWidth(frame), NSHeight(frame)}, dx, dy, [self visible]);
+  NSPoint origin = NSMakePoint(moved.x, moved.y);
+  if (!NSEqualPoints(origin, frame.origin)) [window setFrameOrigin:origin];
+  _last = window.frame;
+}
+
+- (void)toggleExpanded {
+  NSWindow *window = _window;
+  [[ACPiPController forWindow:window] stopMotion];
+  [_ease invalidate], _ease = nil, _target = 0;
+  NSRect frame = window.frame;
+  if (_expanded && NSWidth(_beforeExpand) > 0) {
+    _expanded = NO;
+    ardiacore_pip_zoom::Rect restored = ardiacore_pip_zoom::Moved(
+        {NSMinX(_beforeExpand), NSMinY(_beforeExpand), NSWidth(_beforeExpand), NSHeight(_beforeExpand)}, 0, 0, [self visible]);
+    NSRect next = NSMakeRect(restored.x, restored.y, restored.w, restored.h);
+    if (!NSEqualRects(next, frame)) [window setFrame:next display:YES animate:YES];
+    _width = NSWidth(window.frame);
+    _last = window.frame;
+    return;
+  }
+  _beforeExpand = frame;
+  _aspect = NSWidth(frame) / MAX(NSHeight(frame), 1);
+  _width = NSWidth(frame);
+  _pointer = NSMakePoint(NSMidX(frame), NSMidY(frame));
+  [self step:ardiacore_pip_zoom::ExpandedWidth(_aspect, [self visible]) / MAX(NSWidth(frame), 1)];
+  _expanded = YES;
 }
 
 - (ardiacore_pip_zoom::Size)minSize {
@@ -1262,7 +1320,7 @@ void InstallDragMonitor() {
 void InstallZoomMonitor() {
   static id monitor;
   if (monitor) return;
-  monitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskScrollWheel | NSEventMaskMagnify
+  monitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskScrollWheel | NSEventMaskMagnify | NSEventMaskSmartMagnify
                                                   handler:^NSEvent *(NSEvent *event) {
                                                     return [ACPiPController handleSwipe:event] || [ACPiPZoom handle:event] ? nil : event;
                                                   }];

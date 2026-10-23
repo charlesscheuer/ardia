@@ -17,6 +17,25 @@ static bool Near(double a, double b, double eps = 0.51) { return std::fabs(a - b
 
 int main() {
   const Rect visible{0, 0, 1512, 945};
+  const Rect pipFrame{100, 100, 480, 270};
+  {
+    Rect moved = Moved(pipFrame, 40, -25, visible);
+    CHECK(moved.x == 140 && moved.y == 75 && moved.w == 480 && moved.h == 270);
+    Rect clamped = Moved(pipFrame, -500, 5000, visible);
+    CHECK(clamped.x == 0 && clamped.y == 945 - 270);
+    Rect corner = Moved(pipFrame, 5000, -500, visible);
+    CHECK(corner.x == 1512 - 480 && corner.y == 0);
+    Rect still = Moved(pipFrame, 0, 0, visible);
+    CHECK(still.x == 100 && still.y == 100);
+    Rect offset = Moved({60, 70, 480, 270}, -100, -100, {50, 50, 1000, 800});
+    CHECK(offset.x == 50 && offset.y == 50);
+  }
+  {
+    CHECK(Near(ExpandedWidth(16.0 / 9, visible), 1512 * 0.65, 0.01));
+    CHECK(Near(ExpandedWidth(16.0 / 9, {0, 0, 800, 600}), 520, 0.01));
+    CHECK(Near(ExpandedWidth(4.0 / 3, {0, 0, 2000, 800}), 800, 0.01));
+    CHECK(Near(ExpandedWidth(1, {0, 0, 1000, 1000}), 650, 0.01));
+  }
   const Size minSize{284, 160}, maxSize{1512 * 0.8, 945 * 0.8};
   const double aspect = 16.0 / 9;
 

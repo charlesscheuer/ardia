@@ -4,6 +4,7 @@ import { useBrowser } from "../../store/browser";
 import { useStoreWhile } from "../../store/tabWatch";
 import { usePages } from "../layout/pageState";
 import { startCast } from "./cast";
+import { useMedia } from "./state";
 import { startTabShareCleanup } from "./ShareBar";
 import { cancelDisplayMediaOnNavigation } from "./SharePicker";
 
@@ -11,8 +12,12 @@ export function useAutoPictureInPicture(tabId: string, visible: boolean): boolea
   const enabled = useStoreWhile(useBrowser, visible, (s) => s.settings.autoPictureInPicture ?? true);
   const audible = useStoreWhile(useBrowser, visible, (s) => !!s.live[tabId]?.playingAudio);
   const capturing = useStoreWhile(usePages, visible, (s) => !!s.pages[tabId]?.mediaAccess);
+  const playingVideo = useStoreWhile(useMedia, visible, (s) => {
+    const session = s.sessions[tabId];
+    return !!session?.hasVideo && session.playbackState === "playing";
+  });
   const decided = useRef(false);
-  if (visible) decided.current = enabled && (audible || capturing);
+  if (visible) decided.current = enabled && (audible || capturing || playingVideo);
   return decided.current;
 }
 

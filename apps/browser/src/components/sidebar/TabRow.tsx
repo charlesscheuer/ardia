@@ -18,6 +18,7 @@ import { ACTIVE, LOADING, PLAYING, SELECTED, useRowState } from "./rowState";
 import { registerRow, useSidebarUi } from "./state";
 import { TabIcon } from "./TabIcon";
 import { TabBadges } from "../media/TabBadges";
+import { GROUP_ROW_RADIUS } from "./geometry";
 import { useSidebarTokens } from "./tokens";
 
 export const clickMods = (e: GestureResponderEvent) => {
@@ -44,12 +45,12 @@ export const TabRowItem = memo(function TabRowItem({
   const onto = useDropOnto(`t:${tabId}`);
   return (
     <Animated.View ref={wrapper.ref} style={wrapper.style} {...handle}>
-      <TabRow tabId={tabId} onto={onto} shift={motion?.shift ?? null} />
+      <TabRow tabId={tabId} onto={onto} shift={motion?.shift ?? null} inGroup={!!parentGroup} />
     </Animated.View>
   );
 });
 
-export const TabRow = memo(function TabRow({ tabId, onto = false, shift = null }: { tabId: string; onto?: boolean; shift?: Animated.Value | null }) {
+export const TabRow = memo(function TabRow({ tabId, onto = false, shift = null, inGroup = false }: { tabId: string; onto?: boolean; shift?: Animated.Value | null; inGroup?: boolean }) {
   const theme = useTheme();
   const tokens = useSidebarTokens();
   const windowId = useWindowId();
@@ -93,7 +94,7 @@ export const TabRow = memo(function TabRow({ tabId, onto = false, shift = null }
             {({ pressed }) => (
               <Surface
                 fill={hex(onto || (!active && pressed) ? theme.tabPressed : fill)}
-                cornerRadius={10}
+                cornerRadius={inGroup ? GROUP_ROW_RADIUS : 10}
                 borderWidth={border}
                 borderColor={selected && !active ? hex(tokens.multiSelectedStroke) : undefined}
                 borderColors={active ? theme.tabSelectedBorder.map(hex) : undefined}
@@ -227,7 +228,7 @@ export const SplitRowItem = memo(function SplitRowItem({
       <View {...moved} ref={movedRef} {...hoverProps} style={moved.style as object}>
         <Surface
           fill={hex(active ? theme.tabSelected : hovered ? theme.tabHover : "rgba(0,0,0,0)")}
-          cornerRadius={10}
+          cornerRadius={parentGroup ? GROUP_ROW_RADIUS : 10}
           borderWidth={active ? 1 : 0}
           borderColors={active ? theme.tabSelectedBorder.map(hex) : undefined}
           shadowColor={active ? hex(theme.tabSelectedShadow) : undefined}

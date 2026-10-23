@@ -45,13 +45,14 @@ function AddressBarPicker() {
         anchor="appearance.addressBar"
         description={
           topTabs
-            ? "Tabs are across the top of the window, so the address bar stays in the toolbar. Also in View › Show Address Bar in Sidebar."
-            : "In the sidebar, the page gets the toolbar’s height. While the sidebar is hidden, the address bar is in the toolbar. Also in View › Show Address Bar in Sidebar."
+            ? "Tabs are across the top of the window, so the address bar stays in the toolbar. Choose Never to keep it out of the window entirely and open addresses with ⌘L. Also in View › Show Address Bar in Sidebar."
+            : "In the sidebar, the page gets the toolbar’s height. While the sidebar is hidden, the address bar is in the toolbar. Choose Never to keep it out of the window entirely and open addresses with ⌘L. Also in View › Show Address Bar in Sidebar."
         }
       />
       <View style={{ flexDirection: "row", gap: 14 }}>
-        <AddressBarChoice value="toolbar" title="In the toolbar" selected={addressBar !== "sidebar"} onPress={() => choose("toolbar")} />
+        <AddressBarChoice value="toolbar" title="In the toolbar" selected={addressBar === "toolbar"} onPress={() => choose("toolbar")} />
         <AddressBarChoice value="sidebar" title="In the sidebar" selected={addressBar === "sidebar"} onPress={() => choose("sidebar")} />
+        <AddressBarChoice value="never" title="Never" selected={addressBar === "never"} onPress={() => choose("never")} />
       </View>
     </>
   );
