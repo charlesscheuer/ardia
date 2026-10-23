@@ -1,42 +1,39 @@
 import { PowerUp } from "@ardia/shaders";
 import { useEffect, useState } from "react";
 import { Surface } from "@ardia/shell";
-import { AccessibilityInfo, Animated, StyleSheet, View } from "react-native";
+import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from "react-native";
 import { hex, layout, useTheme } from "../lib/theme";
 import { useWindowId } from "../store/hooks";
-import { springParams } from "./layout/swipeMotion";
 import { NewTabExtras } from "./ntp";
 import { useOnboarding } from "./onboarding/state";
 import { Omnibox } from "./Omnibox";
 
 const BAR_HEIGHT = 112;
-const BAR_BORDER = 0.5;
-const MARKS = {
-  green: { back: require("../../assets/ntp-mark-back.png"), front: require("../../assets/ntp-mark-front.png"), sun: require("../../assets/ntp-mark-sun.png") },
-  plum: { back: require("../../assets/ntp-mark-plum-back.png"), front: require("../../assets/ntp-mark-plum-front.png"), sun: require("../../assets/ntp-mark-plum-sun.png") },
-  blue: { back: require("../../assets/ntp-mark-blue-back.png"), front: require("../../assets/ntp-mark-blue-front.png"), sun: require("../../assets/ntp-mark-blue-sun.png") },
-  purple: { back: require("../../assets/ntp-mark-purple-back.png"), front: require("../../assets/ntp-mark-purple-front.png"), sun: require("../../assets/ntp-mark-purple-sun.png") },
-  pink: { back: require("../../assets/ntp-mark-pink-back.png"), front: require("../../assets/ntp-mark-pink-front.png"), sun: require("../../assets/ntp-mark-pink-sun.png") },
-  red: { back: require("../../assets/ntp-mark-red-back.png"), front: require("../../assets/ntp-mark-red-front.png"), sun: require("../../assets/ntp-mark-red-sun.png") },
-  orange: { back: require("../../assets/ntp-mark-orange-back.png"), front: require("../../assets/ntp-mark-orange-front.png"), sun: require("../../assets/ntp-mark-orange-sun.png") },
-  yellow: { back: require("../../assets/ntp-mark-yellow-back.png"), front: require("../../assets/ntp-mark-yellow-front.png"), sun: require("../../assets/ntp-mark-yellow-sun.png") },
-  neutral: { back: require("../../assets/ntp-mark-neutral-back.png"), front: require("../../assets/ntp-mark-neutral-front.png"), sun: require("../../assets/ntp-mark-neutral-sun.png") },
-};
-const MARK_SIZE = 100;
-const MARK_ABOVE_BAR = 84.1;
-const SUN_DELAY = 250;
-const MARK_LAYERS = [
-  { name: "sun", hidden: 56, delay: SUN_DELAY, spring: springParams(0.56, 0.9) },
-  { name: "back", hidden: 40.5, delay: 170, spring: springParams(0.46, 0.84) },
-  { name: "front", hidden: 34, delay: 80, spring: springParams(0.42, 0.76) },
-] as const;
-const SUN_DRIFT = 6;
-const SUN_DRIFT_SPRING = springParams(0.6, 1);
+const BAR_BORDER = 1;
+const BAR_RADIUS = 24;
+const GREETING_SIZE = 32;
+const GREETING_LINE = 40;
+const GREETING_GAP = 32;
+const GREETING_RISE = 4;
+const GREETING_WORD_MS = 430;
+const GREETING_STAGGER_MS = 70;
+const EMPHASIZED = Easing.bezier(0.23, 1, 0.32, 1);
+const GREETINGS = [
+  "Where to next?",
+  "What are we looking up?",
+  "What’s on your mind?",
+  "Where do we start?",
+  "What’s the plan?",
+  "What are we reading today?",
+  "What’s cooking?",
+  "Ready when you are.",
+];
 const DIA_OFFSET = 1;
 
 type Size = { width: number; height: number };
 let lastSize: Size | null = null;
 const introPlayed = new Set<string>();
+const greetings = new Map<string, string>();
 
 let reduceMotion = false;
 AccessibilityInfo.isReduceMotionEnabled().then((on) => (reduceMotion = on), () => {});
@@ -58,25 +55,9 @@ export function NewTabPage({ tabId, toolbar = true }: { tabId: string; toolbar?:
   };
   const [panelHeight, setPanelHeight] = useState(BAR_HEIGHT);
   const [playIntro] = useState(() => !introPlayed.has(tabId));
-  const [rise] = useState(() => {
-    const intro = playIntro && !reduceMotion;
-    const layers = MARK_LAYERS.map((l) => ({ ...l, y: new Animated.Value(intro ? l.hidden : 0) }));
-    return { layers, drift: new Animated.Value(intro ? SUN_DRIFT : 0) };
-  });
   useEffect(() => {
     introPlayed.add(tabId);
   }, [tabId]);
-  useEffect(() => {
-    if (!playIntro || reduceMotion) return;
-    const spring = (value: Animated.Value, delay: number, params: ReturnType<typeof springParams>) =>
-      Animated.spring(value, { toValue: 0, delay, ...params, useNativeDriver: true });
-    const intro = Animated.parallel([
-      ...rise.layers.map((l) => spring(l.y, l.delay, l.spring)),
-      spring(rise.drift, SUN_DELAY, SUN_DRIFT_SPRING),
-    ]);
-    intro.start();
-    return () => intro.stop();
-  }, [playIntro, rise]);
 
   if (!size) return <View style={{ flex: 1 }} onLayout={(e) => setSize(e.nativeEvent.layout)} />;
 
@@ -95,40 +76,17 @@ export function NewTabPage({ tabId, toolbar = true }: { tabId: string; toolbar?:
           palette={theme.powerUpPalette}
           speed={1}
           origin={0.5}
-          cornerRadius={20}
+          cornerRadius={BAR_RADIUS}
           halo={bar}
         />
       )}
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          left: size.width / 2 + DIA_OFFSET - MARK_SIZE / 2,
-          top: top - MARK_ABOVE_BAR,
-          width: MARK_SIZE,
-          height: MARK_ABOVE_BAR,
-          overflow: "hidden",
-        }}
-      >
-        {rise.layers.map((l) => (
-          <Animated.Image
-            key={l.name}
-            source={(MARKS[theme.profileColor === "incognito" ? "neutral" : theme.profileColor] ?? MARKS.green)[l.name]}
-            style={{
-              position: "absolute",
-              width: MARK_SIZE,
-              height: MARK_SIZE,
-              transform: [{ translateX: l.name === "sun" ? rise.drift : 0 }, { translateY: l.y }],
-            }}
-          />
-        ))}
-      </View>
+      <Greeting tabId={tabId} animate={playIntro && !reduceMotion} color={theme.ntpGreeting} top={top - GREETING_GAP - GREETING_LINE} />
       <View onLayout={(e) => setPanelHeight(e.nativeEvent.layout.height)} style={{ position: "absolute", left: x, top, width }}>
-        <Surface style={StyleSheet.absoluteFill} fill="#00000000" cornerRadius={20} shadowColor="#000000" shadowOpacity={0.08} shadowRadius={2} shadowOffset={[0, 0.5]} />
-        <Surface style={StyleSheet.absoluteFill} fill="#00000000" cornerRadius={20} shadowColor="#000000" shadowOpacity={0.04} shadowRadius={1} shadowOffset={[0, 2]} />
+        <Surface style={StyleSheet.absoluteFill} fill="#00000000" cornerRadius={BAR_RADIUS} shadowColor="#000000" shadowOpacity={theme.dark ? 0.18 : 0.07} shadowRadius={1} shadowOffset={[0, 1]} />
+        <Surface style={StyleSheet.absoluteFill} fill="#00000000" cornerRadius={BAR_RADIUS} shadowColor="#000000" shadowOpacity={theme.dark ? 0.18 : 0.06} shadowRadius={6} shadowOffset={[0, 6]} />
         <Surface
           fill={hex(theme.ntpBarSolid)}
-          cornerRadius={20}
+          cornerRadius={BAR_RADIUS}
           borderColor={hex(theme.ntpBarBorder)}
           borderWidth={BAR_BORDER}
         >
@@ -136,6 +94,47 @@ export function NewTabPage({ tabId, toolbar = true }: { tabId: string; toolbar?:
         </Surface>
       </View>
       <NewTabExtras size={size} bar={bar} />
+    </View>
+  );
+}
+
+function Greeting({ tabId, animate, color, top }: { tabId: string; animate: boolean; color: string; top: number }) {
+  const [words] = useState(() => {
+    const line = greetings.get(tabId) ?? GREETINGS[Math.floor(Math.random() * GREETINGS.length)]!;
+    greetings.set(tabId, line);
+    return line.split(" ").map((word) => ({ word, shown: new Animated.Value(animate ? 0 : 1) }));
+  });
+  useEffect(() => {
+    if (!animate) return;
+    const entrance = Animated.parallel(
+      words.map((w, i) =>
+        Animated.timing(w.shown, { toValue: 1, duration: GREETING_WORD_MS, delay: i * GREETING_STAGGER_MS, easing: EMPHASIZED, useNativeDriver: true }),
+      ),
+    );
+    entrance.start();
+    return () => entrance.stop();
+  }, [animate, words]);
+  return (
+    <View
+      pointerEvents="none"
+      style={{ position: "absolute", left: DIA_OFFSET, right: 0, top, height: GREETING_LINE, flexDirection: "row", justifyContent: "center", alignItems: "center" }}
+    >
+      {words.map((w, i) => (
+        <Animated.Text
+          key={i}
+          style={{
+            fontSize: GREETING_SIZE,
+            lineHeight: GREETING_LINE,
+            letterSpacing: -0.02 * GREETING_SIZE,
+            fontWeight: "500",
+            color,
+            opacity: w.shown,
+            transform: [{ translateY: w.shown.interpolate({ inputRange: [0, 1], outputRange: [GREETING_RISE, 0] }) }],
+          }}
+        >
+          {i === 0 ? w.word : ` ${w.word}`}
+        </Animated.Text>
+      ))}
     </View>
   );
 }

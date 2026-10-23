@@ -61,8 +61,12 @@ const dark = {
   goButtonText: "#1A1418",
   goButtonIdle: "rgba(255,255,255,0.08)",
 
-  ntpBarSolid: "#2D2D2D",
-  ntpBarBorder: "rgba(120,125,134,0.32)",
+  ntpBarSolid: "#2E2C28",
+  ntpBarBorder: "rgba(255,255,255,0.06)",
+  ntpGreeting: "#E7E5E4",
+  heroGo: "#1888F1",
+  heroGoIdle: "rgba(43,158,255,0.5)",
+  heroGoText: "#FFFFFF",
   accent: "#4A77D4",
 };
 
@@ -112,8 +116,12 @@ const light: typeof dark = {
   goButtonText: "#FFFFFF",
   goButtonIdle: "rgba(0,0,0,0.06)",
 
-  ntpBarSolid: "#FEFFFF",
-  ntpBarBorder: "rgba(0,0,0,0.07)",
+  ntpBarSolid: "#FBFBFB",
+  ntpBarBorder: "rgba(0,0,0,0.06)",
+  ntpGreeting: "#191715",
+  heroGo: "#2E9DFF",
+  heroGoIdle: "#8CD0FF",
+  heroGoText: "#FFFFFF",
   accent: "#6395FC",
 };
 

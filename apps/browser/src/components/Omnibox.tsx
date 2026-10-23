@@ -480,7 +480,7 @@ export function Omnibox({
       <AddChip tabId={tabId} onGo={barActions.go} />
       <View style={{ flex: 1 }} />
       <IconButton icon="mic" size={14} color={theme.textTertiary} tooltip="Dictate" onPress={barActions.dictate} />
-      <GoButton label={destinationLabel(current)} enabled={!hero || !!typed.trim()} onPress={barActions.choose} />
+      <GoButton label={destinationLabel(current)} enabled={!hero || !!typed.trim()} hero={hero} onPress={barActions.choose} />
     </View>
   );
 
@@ -587,10 +587,11 @@ const AddChip = memo(function AddChip({ tabId, onGo }: { tabId: string; onGo(url
   );
 });
 
-const GoButton = memo(function GoButton({ label, enabled, onPress }: { label: string; enabled: boolean; onPress(): void }) {
+const GoButton = memo(function GoButton({ label, enabled, hero, onPress }: { label: string; enabled: boolean; hero: boolean; onPress(): void }) {
   const theme = useTheme();
   const { hovered, hoverProps } = useHover();
-  const text = enabled ? theme.goButtonText : theme.textTertiary;
+  const text = hero ? theme.heroGoText : enabled ? theme.goButtonText : theme.textTertiary;
+  const fill = hero ? (enabled ? theme.heroGo : theme.heroGoIdle) : enabled ? theme.goButton : theme.goButtonIdle;
   return (
     <View {...hoverProps} style={{ marginLeft: 8 }}>
     <Pressable onPress={onPress} disabled={!enabled} accessibilityRole="button" accessibilityLabel={label}>
@@ -600,7 +601,7 @@ const GoButton = memo(function GoButton({ label, enabled, onPress }: { label: st
           height: 32,
           paddingHorizontal: 16,
           borderRadius: 16,
-          backgroundColor: enabled ? theme.goButton : theme.goButtonIdle,
+          backgroundColor: fill,
           opacity: enabled && hovered ? 0.9 : 1,
           flexDirection: "row",
           alignItems: "center",
@@ -608,8 +609,8 @@ const GoButton = memo(function GoButton({ label, enabled, onPress }: { label: st
           gap: 6,
         }}
       >
-        <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: "600", color: text }}>{label}</Text>
-        <Symbol name="return" size={11} weight="medium" color={enabled ? text + "99" : text} style={{ width: 14, height: 14 }} />
+        <Text numberOfLines={1} style={{ fontSize: hero ? 14 : 15, fontWeight: hero ? "500" : "600", color: text }}>{label}</Text>
+        <Symbol name="return" size={11} weight="medium" color={enabled || hero ? text + "99" : text} style={{ width: 14, height: 14 }} />
       </View>
     </Pressable>
     </View>
