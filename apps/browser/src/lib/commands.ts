@@ -80,7 +80,7 @@ export function runCommand({ command, arg, windowId: requested }: CommandEvent) 
     case "toggleJavaScriptFromAppleEvents":
       return s.updateSettings({ allowJavaScriptFromAppleEvents: !s.settings.allowJavaScriptFromAppleEvents });
     case "toggleAddressBar":
-      return s.updateSettings({ addressBar: s.settings.addressBar === "sidebar" ? "toolbar" : "sidebar" });
+      return s.updateSettings({ addressBar: s.settings.addressBar === "sidebar" ? "never" : "sidebar" });
     case "openSettings":
       return openSettings();
     case "keyboardShortcuts":

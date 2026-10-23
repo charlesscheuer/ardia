@@ -57,7 +57,7 @@ export type Settings = {
   hideBookmarksBarImport: boolean;
 
   appearance: "auto" | "light" | "dark";
-  addressBar: "toolbar" | "sidebar";
+  addressBar: "toolbar" | "sidebar" | "never";
 
   defaultProfileId: string;
 
@@ -109,7 +109,7 @@ export const DEFAULT_SETTINGS: Settings = {
   bookmarksBar: "never",
   hideBookmarksBarImport: false,
   appearance: "auto",
-  addressBar: "toolbar",
+  addressBar: "never",
   defaultProfileId: DEFAULT_PROFILE_ID,
   shortcuts: {},
   openLinksInLittleArdia: true,
@@ -162,16 +162,21 @@ export function choose(settings: Settings, patch: Partial<Settings>): Settings {
 }
 
 export function migrateSavedSettings(saved: (Partial<Settings> & { batterySaver?: unknown }) | undefined): Partial<Settings> | undefined {
-  if (!saved || !("batterySaver" in saved)) return saved;
-  const { batterySaver, ...rest } = saved;
-  const explicit = batterySaver === false || (batterySaver === true && !!rest.chosen?.includes("batterySaver") && !rest.inferred?.includes("batterySaver"));
-  const without = (keys: string[]) => keys.filter((k) => k !== "batterySaver");
-  return {
-    ...rest,
-    ...(rest.chosen ? { chosen: explicit ? [...new Set([...without(rest.chosen), "batterySaverWhen"])] : without(rest.chosen) } : {}),
-    ...(rest.inferred ? { inferred: without(rest.inferred) } : {}),
-    ...(explicit && rest.batterySaverWhen === undefined ? { batterySaverWhen: batterySaver ? "unplugged" : "never" } : {}),
-  };
+  if (!saved) return saved;
+  let out: Partial<Settings> & { batterySaver?: unknown } = saved;
+  if ("batterySaver" in out) {
+    const { batterySaver, ...rest } = out;
+    const explicit = batterySaver === false || (batterySaver === true && !!rest.chosen?.includes("batterySaver") && !rest.inferred?.includes("batterySaver"));
+    const without = (keys: string[]) => keys.filter((k) => k !== "batterySaver");
+    out = {
+      ...rest,
+      ...(rest.chosen ? { chosen: explicit ? [...new Set([...without(rest.chosen), "batterySaverWhen"])] : without(rest.chosen) } : {}),
+      ...(rest.inferred ? { inferred: without(rest.inferred) } : {}),
+      ...(explicit && rest.batterySaverWhen === undefined ? { batterySaverWhen: batterySaver ? "unplugged" : "never" } : {}),
+    };
+  }
+  if (out.addressBar && out.addressBar !== "never" && !out.chosen?.includes("addressBar")) out = { ...out, addressBar: "never" };
+  return out;
 }
 
 export type SettingsSlice = {

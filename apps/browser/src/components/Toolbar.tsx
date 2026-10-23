@@ -56,6 +56,7 @@ export function Toolbar({
   bare?: boolean;
 }) {
   const theme = useTheme();
+  const addressBar = useSettings((s) => s.addressBar);
   const tab = useToolbarTab(tabId);
   const isLoading = useTabLive(tabId, (l) => l.isLoading);
   const themeColor = useTabLive(tabId, (l) => l.themeColor);
@@ -105,7 +106,7 @@ export function Toolbar({
         <HistoryButton style={at.forward} tabId={tab.id} windowId={tab.windowId} direction={1} disabled={!history.forward} palette={palette} onFocus={focus} />
         <ReloadButton style={at.reload} tab={tab} loading={isLoading} palette={palette} onFocus={focus} />
         <ToolbarExtensions tabId={tab.id} windowId={windowId} palette={palette} top={21.2 - 14} right={inSplit ? 8 + 60 : 8} />
-        {tab.url ? (
+        {tab.url && addressBar !== "never" ? (
           <UrlField tab={tab} palette={palette} windowId={windowId} inSplit={inSplit} onFocus={focus} style={urlStyle} />
         ) : null}
         {inSplit && (
