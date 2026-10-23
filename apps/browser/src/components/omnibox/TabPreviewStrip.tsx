@@ -1,5 +1,6 @@
 import { Surface } from "@ardia/shell";
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import { useShallow } from "zustand/react/shallow";
 import { lastPicture } from "../../lib/tabPictures";
 import { hex, useTheme } from "../../lib/theme";
 import { useBrowser } from "../../store/browser";
@@ -15,7 +16,7 @@ const STRIP_RADIUS = 16;
 
 export function TabPreviewStrip({ windowId, activeTabId }: { windowId: string; activeTabId: string }) {
   const theme = useTheme();
-  const ids = useBrowser((s) => viewTabIds(s, windowId));
+  const ids = useBrowser(useShallow((s) => viewTabIds(s, windowId)));
   if (ids.length < 2) return null;
   return (
     <Surface
