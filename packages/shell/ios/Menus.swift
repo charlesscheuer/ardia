@@ -199,7 +199,7 @@ final class MenuTarget: NSObject, NSMenuItemValidation {
   static let shared = MenuTarget()
   var handler: ((String, String?, String?) -> Void)?
 
-  private static let focusMovingCommands: Set<String> = ["newTab", "focusCommandBar", "findInPage"]
+  private static let focusMovingCommands: Set<String> = ["newTab", "focusCommandBar", "focusCenteredCommandBar", "findInPage"]
 
   @objc(commandDispatch:) func performCommand(_ sender: NSMenuItem) {
     guard let item = sender as? CommandItem else { return }
@@ -354,6 +354,7 @@ enum MainMenu {
       .separator(),
       cmd("Open Command Bar", "focusCommandBar", "l"),
       cmd("Open Command Bar", "focusCommandBar", functionKey(NSF5FunctionKey), .control).hiddenShortcut(),
+      cmd("Open Command Bar (Centered)", "focusCenteredCommandBar", "j"),
       .separator(),
       closeWindow,
       cmd("Close Tab", "closeTab", "w"),
@@ -393,7 +394,7 @@ enum MainMenu {
         cmd("Find Next", "findNext", "g"),
         cmd("Find Previous", "findPrevious", "g", [.command, .shift]),
         cmd("Use Selection for Find", "useSelectionForFind", "e"),
-        cmd("Jump to Selection", "jumpToSelection", "j"),
+        cmd("Jump to Selection", "jumpToSelection"),
       ]),
       sub("Spelling and Grammar", [
         std("Show Spelling and Grammar", #selector(NSText.showGuessPanel(_:)), ":"),
@@ -499,6 +500,8 @@ enum MainMenu {
       cmd("Previous Tab", "previousTab", "{").hiddenShortcut(),
       cmd("Next Tab", "nextTab", functionKey(NSRightArrowFunctionKey), [.command, .option]).hiddenShortcut(),
       cmd("Previous Tab", "previousTab", functionKey(NSLeftArrowFunctionKey), [.command, .option]).hiddenShortcut(),
+      cmd("Next Tab", "nextTab", rightArrow, [.command, .shift]).hiddenShortcut(),
+      cmd("Previous Tab", "previousTab", leftArrow, [.command, .shift]).hiddenShortcut(),
       cmd("Next Tab", "nextTab", functionKey(NSPageDownFunctionKey), .control).hiddenShortcut(),
       cmd("Previous Tab", "previousTab", functionKey(NSPageUpFunctionKey), .control).hiddenShortcut(),
       cmd("Next Tab", "nextTab", functionKey(NSDownArrowFunctionKey), [.command, .option]).hiddenShortcut(),

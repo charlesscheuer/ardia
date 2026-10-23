@@ -53,6 +53,7 @@ function BrowserWindow() {
   const showStrip = useBrowser((s) => topTabs && !!s.windows[windowId]?.sidebarOpen);
   const fullscreen = !!useFullscreenTab(windowId);
   const [width, setWidth] = useState(0);
+  const [height, setHeight] = useState(0);
   const card = (
     <>
       <ContentCard />
@@ -61,7 +62,13 @@ function BrowserWindow() {
   );
 
   return (
-    <View style={{ flex: 1, flexDirection: "row" }} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+    <View
+      style={{ flex: 1, flexDirection: "row" }}
+      onLayout={(e) => {
+        setWidth(e.nativeEvent.layout.width);
+        setHeight(e.nativeEvent.layout.height);
+      }}
+    >
       <WindowBackdrop vibrancy {...theme.backdrop} colors={theme.windowTint} grainOpacity={theme.grain} style={StyleSheet.absoluteFill} />
       <WindowProfile />
       <ProfileTint />
@@ -82,7 +89,7 @@ function BrowserWindow() {
         </View>
       )}
       {topTabs && !showStrip && <TopStripPeek windowWidth={width} enabled={!fullscreen} />}
-      <CommandPanel windowWidth={width} />
+      <CommandPanel windowWidth={width} windowHeight={height} />
       <DownloadsPopover />
       <ExtensionOverlays />
       <DownloadMagnet />

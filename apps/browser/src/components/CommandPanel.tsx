@@ -13,6 +13,7 @@ import { barWidth } from "./NewTabPage";
 import { closeNewTabBar } from "./omnibox/newTabBar";
 import type { NewTabTarget } from "../store/types";
 import { Omnibox, PANEL_TEXT_LEFT } from "./Omnibox";
+import { TabPreviewStrip } from "./omnibox/TabPreviewStrip";
 import { closePanelToHeroBar, type BarDismissal } from "./omnibox/barState";
 import { insecureLevel, URL_FIELD, urlTextLeft } from "./Toolbar";
 
@@ -27,6 +28,8 @@ const DROPDOWN_RADIUS = 12;
 const PANEL_OPEN_HEIGHT = 107;
 const CENTRED_TOP_SHARE = 0.22;
 const CENTRED_START_SCALE = 0.96;
+const SWITCHER_WIDTH = 720;
+const SWITCHER_STRIP_MIN_HEIGHT = 480;
 
 const GROW_MS = 130;
 const GROW_EASING = Easing.out(Easing.exp);
@@ -40,7 +43,7 @@ AccessibilityInfo.addEventListener("reduceMotionChanged", (on) => (reduceMotion 
 
 type Box = { left: number; top: number; width: number; height: number };
 
-export function CommandPanel({ windowWidth }: { windowWidth: number }) {
+export function CommandPanel({ windowWidth, windowHeight }: { windowWidth: number; windowHeight: number }) {
   const theme = useTheme();
   const windowId = useWindowId();
   const { panel } = useWindowUi();
@@ -56,6 +59,8 @@ export function CommandPanel({ windowWidth }: { windowWidth: number }) {
   }, [panel.open, overRows, windowId]);
   if (!panel.open || !activeId) return null;
   if (panel.newTab) return card ? <CentredBar windowId={windowId} tabId={activeId} target={panel.newTab} card={card} /> : null;
+  if (panel.centered)
+    return <CenteredSwitcher windowId={windowId} tabId={activeId} windowWidth={windowWidth} windowHeight={windowHeight} />;
   if (!anchor) return null;
 
   const room = (left: number, fallback: number) => (windowWidth > 0 ? windowWidth - left - WINDOW_MARGIN : fallback);
@@ -129,6 +134,49 @@ function CentredBar({ windowId, tabId, target, card }: { windowId: string; tabId
         <Omnibox key={`newTab:${target.kind}`} variant="panel" tabId={tabId} opensTab={target} onCancel={onCancel} onDone={onDone} />
       </OutsidePressArea>
     </Grow>
+  );
+}
+
+function CenteredSwitcher({
+  windowId,
+  tabId,
+  windowWidth,
+  windowHeight,
+}: {
+  windowId: string;
+  tabId: string;
+  windowWidth: number;
+  windowHeight: number;
+}) {
+  const theme = useTheme();
+  const initialText = useBrowser((s) => s.tabs[tabId]?.url ?? "");
+  const [progress] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
+  useEffect(() => {
+    if (reduceMotion) return;
+    Animated.timing(progress, { toValue: 1, duration: GROW_MS, easing: GROW_EASING, useNativeDriver: true }).start();
+  }, []);
+  const onCancel = () => useBrowser.getState().closePanel(windowId);
+  const onDone = (reason?: BarDismissal) => closePanelToHeroBar(windowId, tabId, reason);
+  const width = windowWidth > 0 ? Math.min(SWITCHER_WIDTH, Math.max(MIN_WIDTH, windowWidth - WINDOW_MARGIN * 2)) : SWITCHER_WIDTH;
+  const showStrip = windowHeight === 0 || windowHeight >= SWITCHER_STRIP_MIN_HEIGHT;
+  const scale = progress.interpolate({ inputRange: [0, 1], outputRange: [CENTRED_START_SCALE, 1] });
+  return (
+    <View
+      pointerEvents="box-none"
+      style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}
+    >
+      <Animated.View style={{ width, opacity: progress, transform: [{ scale }] }}>
+        {showStrip ? <TabPreviewStrip windowId={windowId} activeTabId={tabId} /> : null}
+        <View style={showStrip ? { marginTop: 10 } : undefined}>
+          <Surface {...panelSurface(theme, PANEL_RADIUS)} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }} />
+          <View style={{ overflow: "hidden", borderRadius: PANEL_RADIUS }}>
+            <OutsidePressArea onOutsidePress={onCancel}>
+              <Omnibox key={tabId} variant="centered" tabId={tabId} initialText={initialText} onCancel={onCancel} onDone={onDone} />
+            </OutsidePressArea>
+          </View>
+        </View>
+      </Animated.View>
+    </View>
   );
 }
 

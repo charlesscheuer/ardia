@@ -186,6 +186,6 @@ export type FindState = {
 
 export type NewTabTarget = { kind: "list" } | { kind: "group"; groupId: string } | { kind: "into"; tabId: string };
 
-export type PanelState = { open: boolean; initialText: string; newTab?: NewTabTarget };
+export type PanelState = { open: boolean; initialText: string; newTab?: NewTabTarget; centered?: boolean };
 
 export type WindowUi = { panel: PanelState; downloadsOpen: boolean };

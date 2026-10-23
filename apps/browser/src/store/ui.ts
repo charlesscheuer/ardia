@@ -20,6 +20,7 @@ export type UiSlice = {
   setFocusedWindow(id: string): void;
   setAppDark(dark: boolean): void;
   openPanel(windowId: string, initialText?: string, newTab?: NewTabTarget): void;
+  openCenteredPanel(windowId: string, initialText?: string): void;
   closePanel(windowId: string): void;
   setDownloadsOpen(windowId: string, open: boolean): void;
   setFind(tabId: string, patch: Partial<FindState>): void;
@@ -79,6 +80,11 @@ export const createUiSlice: StateCreator<BrowserState, [], [], UiSlice> = (set, 
   openPanel(windowId, initialText = "", newTab) {
     expectFocus(windowId, commandBarFocus);
     set((s) => patchWindowUi(s, windowId, { panel: newTab ? { open: true, initialText, newTab } : { open: true, initialText } }));
+  },
+
+  openCenteredPanel(windowId, initialText = "") {
+    expectFocus(windowId, commandBarFocus);
+    set((s) => patchWindowUi(s, windowId, { panel: { open: true, initialText, centered: true } }));
   },
 
   closePanel(windowId) {

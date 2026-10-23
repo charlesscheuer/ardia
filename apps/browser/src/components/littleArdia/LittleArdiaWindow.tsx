@@ -29,8 +29,15 @@ const BUTTON = 28;
 export function LittleArdiaWindow() {
   const theme = useTheme();
   const [width, setWidth] = useState(0);
+  const [height, setHeight] = useState(0);
   return (
-    <View style={{ flex: 1 }} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+    <View
+      style={{ flex: 1 }}
+      onLayout={(e) => {
+        setWidth(e.nativeEvent.layout.width);
+        setHeight(e.nativeEvent.layout.height);
+      }}
+    >
       <WindowBackdrop vibrancy {...theme.backdrop} colors={theme.windowTint} grainOpacity={theme.grain} style={StyleSheet.absoluteFill} />
       <View style={{ flex: 1, flexDirection: "row", paddingTop: SMALL_BAR_HEIGHT, paddingLeft: INSET, paddingRight: INSET, paddingBottom: INSET }}>
         <ContentCard />
@@ -38,7 +45,7 @@ export function LittleArdiaWindow() {
       <View style={{ position: "absolute", left: 0, right: 0, top: 0 }}>
         <LittleArdiaBar />
       </View>
-      <CommandPanel windowWidth={width} />
+      <CommandPanel windowWidth={width} windowHeight={height} />
       <DownloadsPopover />
     </View>
   );
