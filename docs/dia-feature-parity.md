@@ -397,14 +397,14 @@ string doesn't matter. Afterwards: `kill %1` for the server, quit the app, `rm -
 | Insecure‑site warning | ✓ | ✅ | lock-warning glyph in the URL field; Chrome's interstitial for certificate errors |
 
 ## 9. AI assistant — Chat
-Everything in this section is deferred on purpose.
+Everything in this section is deferred on purpose. The fork (charlesscheuer/ardia) overrides the no-AI rule for one surface: a ⌘⇧E side panel that chats through the user's own connected web accounts (Claude / ChatGPT / Codex) — no bundled model, no API key. Rows it touches are marked (fork); the rest stay ⏸.
 
 | Feature | Dia | Ardia | Gap |
 |---|---|---|---|
-| Chat ⌘E (sidebar / floating / tab), Focus Chat ⌃⌘E | ✓ | ⏸ | |
-| Current page as context | ✓ | ⏸ | |
-| @‑mention tabs / tab groups; attach files, screenshots, selection | ✓ | ⏸ | |
-| Ask on Page (selection, video timestamps, charts, iframes, shadow DOM) | ✓ | ⏸ | |
+| Chat ⌘E (sidebar / floating / tab), Focus Chat ⌃⌘E | ✓ | ✅ (fork) | ⌘⇧E sidebar panel only (Dia's ⌘E is Use Selection for Find here); the panel hosts the account's own web session and drives it — see docs/fork-notes.md §6 |
+| Current page as context | ✓ | ✅ (fork) | a live page chip on the composer (favicon, title, host), detachable per message |
+| @‑mention tabs / tab groups; attach files, screenshots, selection | ✓ | ⏸ | (fork) files and selection attach in the panel: a picked local file becomes the working file with an apply-edit round trip, and page selections attach from the composer or the selection popover. @‑mentions and screenshots are not done |
+| Ask on Page (selection, video timestamps, charts, iframes, shadow DOM) | ✓ | ⏸ | (fork) selection only: the selection popover gains "Ask in Chat", and the composer can pick any element agentation-style (selector path, styles, React components) |
 | Screen capture → ask (region / full page) | ✓ | ⏸ | |
 | Streaming dictation | ✓ | ⏸ | |
 | Model picker / reasoning effort / "Skip" thinking; live thinking UI | ✓ | ⏸ | |

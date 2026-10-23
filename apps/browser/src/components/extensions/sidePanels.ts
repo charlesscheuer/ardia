@@ -1,5 +1,6 @@
 import { extensionSidePanelUrl } from "@ardia/ardiacore";
 import { useBrowser } from "../../store/browser";
+import { closeChatPanel } from "../chat/state";
 import { activeBrowserId, extensionProfile, isPrivate, pageProfile, shownIn, useExtensions } from "./store";
 
 const wanted = new Map<string, string>();
@@ -15,6 +16,7 @@ export const wantedSidePanels = () => [...wanted];
 
 export function openSidePanel(windowId: string, extensionId: string): Promise<void> {
   if (!shownIn(windowId, extensionId)) return Promise.resolve();
+  closeChatPanel(windowId);
   wanted.set(windowId, extensionId);
   return syncSidePanel(windowId);
 }

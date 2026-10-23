@@ -37,6 +37,7 @@ import { openSplitPane } from "../components/layout/splitActions";
 import { runSidebarCommand } from "../components/sidebar/commands";
 import { numberedTabs } from "../components/sidebar/entries";
 import { openExtensionFromMenu } from "../components/extensions/bridge";
+import { toggleChatPanel } from "../components/chat/state";
 import { toggleCastPicker } from "../components/media/cast";
 import { openManageExtensions, openPinDialog, openWebStore } from "../components/extensions/state";
 import { requestAutofill } from "../components/site/Autofill";
@@ -202,6 +203,8 @@ export function runCommand({ command, arg, windowId: requested }: CommandEvent) 
       return s.focusPane(windowId, -1);
     case "toggleSidebar":
       return s.toggleSidebar(windowId);
+    case "toggleChatPanel":
+      return toggleChatPanel(windowId);
     case "zoomIn":
       return page ? void web?.zoomStep(1) : undefined;
     case "zoomOut":

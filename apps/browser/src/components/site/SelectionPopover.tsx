@@ -5,6 +5,7 @@ import { hex, useTheme } from "../../lib/theme";
 import { useBrowser } from "../../store/browser";
 import { defaultSearchEngine } from "../../store/settings";
 import { useHover } from "../primitives";
+import { attachSelection } from "../chat/state";
 import { searchSelection, setPageSelection, usePageSelection, type ClickModifiers, type PageSelection } from "./selection";
 
 const HEIGHT = 32;
@@ -75,8 +76,46 @@ function Bar({ tabId, selection, zoom, area }: { tabId: string; selection: PageS
         <VisualEffect material="menu" cornerRadius={10} style={StyleSheet.absoluteFill} />
         <View style={{ ...StyleSheet.absoluteFillObject, borderRadius: 10, backgroundColor: theme.dark ? "rgba(38,36,37,0.72)" : "rgba(252,251,252,0.7)" }} />
         <SearchButton tabId={tabId} text={selection.text} />
+        <AskInChatButton tabId={tabId} text={selection.text} />
       </Surface>
     </Animated.View>
+  );
+}
+
+function AskInChatButton({ tabId, text }: { tabId: string; text: string }) {
+  const theme = useTheme();
+  const windowId = useBrowser((s) => s.tabs[tabId]?.windowId);
+  const { hovered, hoverProps } = useHover();
+  return (
+    <View {...hoverProps} tooltip="Ask in Chat (⌘⇧E)">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Ask in Chat"
+        onPress={() => {
+          if (!windowId) return;
+          attachSelection(windowId, { text, elementPath: "" });
+          setPageSelection(tabId, null);
+        }}
+      >
+        {({ pressed }) => (
+          <View
+            style={{
+              height: HEIGHT - 6,
+              paddingLeft: 7,
+              paddingRight: 9,
+              borderRadius: 7,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 5,
+              backgroundColor: pressed || hovered ? (theme.dark ? `rgba(255,255,255,${pressed ? 0.12 : 0.07})` : `rgba(0,0,0,${pressed ? 0.1 : 0.06})`) : undefined,
+            }}
+          >
+            <Symbol name="bubble.left.and.bubble.right" size={12} weight="medium" color={theme.icon} style={{ width: 16, height: 16 }} />
+            <Text style={{ fontSize: 13, fontWeight: "500", color: theme.textPrimary }}>Ask in Chat</Text>
+          </View>
+        )}
+      </Pressable>
+    </View>
   );
 }
 
