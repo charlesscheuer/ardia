@@ -1,6 +1,6 @@
 # Fork notes
 
-This fork (charlesscheuer/ardia, branch `charlie/aster-pip-no-url-bar`) carries four changes on top of upstream `main`. Each one is listed with the files it touches and how to undo it.
+This fork (charlesscheuer/ardia, branch `charlie/aster-pip-no-url-bar`) carries five changes on top of upstream `main`. Each one is listed with the files it touches and how to undo it.
 
 ## 1. No down arrow next to Clear
 
@@ -32,8 +32,19 @@ Ardia already had Dia-style PiP (floating window, ⌘-scroll/pinch zoom, throw, 
 
 Not ported from Aster: its ±10 s buttons inside the PiP window (Ardia's PiP already seeks from its progress bar and its players skip ±15 s) and its right-click Float Video item (the hover card and Site Controls already toggle PiP; page context menus come from the engine).
 
+## 5. Centered command bar with tab previews (⌘J)
+
+An Arc-style switcher on top of the existing command bar machinery. ⌘L is unchanged (the bar grows from the URL field / card anchor); ⌘J opens the same bar centered in the viewport.
+
+- **Shortcut.** New command `focusCenteredCommandBar` (File › Open Command Bar (Centered), ⌘J) in `packages/shell/ios/Menus.swift`, handled in `apps/browser/src/lib/commands.ts`, opening via the new `openCenteredPanel` store action (`apps/browser/src/store/ui.ts`; `PanelState` gains `centered`). Pressing ⌘J again closes it. It is rebindable in Settings › Shortcuts like every other menu command, and it joins `focusMovingCommands` so focus hands off to its field. ⌘J used to be Jump to Selection: that item keeps its place in Edit › Find but no longer has a default key (rebind it in Settings › Shortcuts if you want it back).
+- **Centered presentation.** `CommandPanel` renders a `CenteredSwitcher`: a full-window flex-centered column (the app root now also reports window height, `apps/browser/src/App.tsx`) instead of the URL-anchored `Grow`. Same panel surface, same dismissal (outside press, Esc, choosing a result returns focus to the page or the new-tab hero bar).
+- **Tab preview strip.** Above the field sits `apps/browser/src/components/omnibox/TabPreviewStrip.tsx`: one card per tab in the window's view order — page thumbnail, favicon + title label underneath, the current tab's card highlighted — in a horizontal scroll strip on its own panel surface. Clicking a card activates that tab and closes the bar. Thumbnails come from the existing tab-picture cache (`apps/browser/src/lib/tabPictures.ts`): Ardia already captures a quarter-scale JPEG of each tab 1.5 s after it becomes active and keeps the last 40. A tab that has never been active (restored session, opened in the background, incognito) has no picture, so its card falls back to a large favicon on a themed tile; no new capture pipeline was built. The strip hides itself when the window has fewer than two tabs or is shorter than 480 pt.
+- **Current tab pinned first.** The bar is a new `Omnibox` variant, `"centered"`: untouched, its list is the same start list the sidebar dropdown uses, which already leads with the current tab's row; while typing, the current tab (title + URL) stays pinned as the first row ahead of the normal suggestions, deduped against history rows for the same URL. The panel variant's bottom row (Open a tab or file / Go) is not shown; Enter and the arrows work as usual.
+- **Tab switching keys.** ⌘⇧[ and ⌘⇧] already switched tabs upstream (Tabs › Previous/Next Tab, riding on the store's wrap-around `cycle`). This change adds the arrow-key twins as hidden menu shortcuts on the same two commands — ⌘⇧← Previous Tab, ⌘⇧→ Next Tab — so they rebind together with them. Note ⌘⇧←/→ now switch tabs even when a text field has focus, where they would otherwise extend the selection.
+
 ## Verification
 
 - `packages/ardiacore` C++ tests pass on this machine: `pip-zoom.test.cc` (including the new `Moved`/`ExpandedWidth` cases) and `pip-throw.test.cc`.
 - The browser app typechecks (`tsc`) for the touched packages.
 - The native PiP changes need a Mac build and a real trackpad pass before they can be called done: scroll-to-move feel, smart-magnify toggling, and the Document PiP fallback on a custom player (e.g. a site with `disablePictureInPicture`) are the three checks.
+- The centered command bar (change 5) typechecks with the rest of the app; its Swift menu changes and the on-screen result (centering, strip thumbnails, ⌘⇧-arrow switching) likewise need a Mac build to confirm.

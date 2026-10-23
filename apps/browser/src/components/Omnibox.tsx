@@ -26,7 +26,7 @@ import { keywordScope, offeredScope, useSuggestions } from "./omnibox/useSuggest
 import { setPopover } from "./layout/pageState";
 import { IconButton, useHover } from "./primitives";
 
-type Variant = "panel" | "hero" | "sidebar";
+type Variant = "panel" | "hero" | "sidebar" | "centered";
 
 export const PANEL_TEXT_LEFT = 48;
 const PANEL_ICON_LEFT = 21;
@@ -74,6 +74,7 @@ export function Omnibox({
   const currentUrl = useBrowser((s) => (opensTab ? "" : (s.tabs[tabId]?.url ?? "")));
   const hero = variant === "hero";
   const dropdown = variant === "sidebar";
+  const centered = variant === "centered";
 
   const [restored] = useState(() => (hero ? savedNtpQuery(tabId) : null));
   const [typed, setTyped] = useState(restored?.typed ?? initialText);
@@ -112,8 +113,15 @@ export function Omnibox({
     scope,
     preventInline: suppressCompletion,
   });
-  const start = useDropdownStart(dropdown && !edited && !scope, tabId, profileId);
-  const items = dropdown && !edited && !scope ? start : suggested;
+  const start = useDropdownStart((dropdown || centered) && !edited && !scope, tabId, profileId);
+  const listed = (dropdown || centered) && !edited && !scope ? start : suggested;
+  const currentTitle = useBrowser((s) => (centered ? (s.tabs[tabId]?.title ?? "") : ""));
+  const currentFavicon = useBrowser((s) => (centered ? (s.tabs[tabId]?.favicon ?? null) : null));
+  const pinned: Suggestion | null =
+    centered && edited && !scope && currentUrl ? { kind: "page", url: currentUrl, title: currentTitle, favicon: currentFavicon } : null;
+  const items = pinned
+    ? [pinned, ...listed.filter((i) => i.kind !== "page" || !!i.tabId || i.url.replace(/#.*$/, "") !== currentUrl.replace(/#.*$/, ""))]
+    : listed;
   const inline = useInlineCompletion(input, typed, suppressCompletion || scope ? "" : completion);
   const shownCompletion = inline.shown;
   const value = typed + shownCompletion;
@@ -521,7 +529,7 @@ export function Omnibox({
         </View>
       </ContextMenuArea>
       {listAway ? null : suggestionList}
-      {bottomRow}
+      {centered ? null : bottomRow}
     </View>
   );
 }

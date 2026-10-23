@@ -139,6 +139,9 @@ export function runCommand({ command, arg, windowId: requested }: CommandEvent) 
       if (tab && addressBarInSidebar(s, windowId)) return s.openPanel(windowId, "");
       if (!focusHeroBar(windowId, tabId)) return tab ? s.openPanel(windowId, "") : undefined;
       return ui?.panel.open ? s.closePanel(windowId) : undefined;
+    case "focusCenteredCommandBar":
+      if (ui?.panel.open && ui.panel.centered) return s.closePanel(windowId);
+      return tab ? s.openCenteredPanel(windowId, page?.url ?? "") : undefined;
     case "closeTab":
       if (ui?.panel.newTab) {
         closeNewTabBar(windowId);
