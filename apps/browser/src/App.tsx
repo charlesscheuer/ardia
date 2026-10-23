@@ -5,6 +5,7 @@ import { CommandPanel } from "./components/CommandPanel";
 import { ContentCard } from "./components/ContentCard";
 import { BookmarkDialog } from "./components/bookmarks/BookmarkDialog";
 import { EditBookmarkDialog } from "./components/bookmarks/EditBookmarkDialog";
+import { ChatPanel } from "./components/chat/ChatPanel";
 import { ExtensionOverlays } from "./components/extensions/ExtensionOverlays";
 import { ExtensionSidePanel } from "./components/extensions/SidePanel";
 import { DownloadMagnet, DownloadsPopover } from "./components/Downloads";
@@ -58,6 +59,7 @@ function BrowserWindow() {
     <>
       <ContentCard />
       {!fullscreen && <ExtensionSidePanel />}
+      {!fullscreen && <ChatPanel />}
     </>
   );
 

@@ -441,6 +441,31 @@ public class ShellModule: Module {
       }
     }.runOnQueue(.main)
 
+    AsyncFunction("readPickedFile") { (url: String, promise: Promise) in
+      guard let fileURL = URL(string: url), fileURL.isFileURL else {
+        promise.resolve(nil)
+        return
+      }
+      DispatchQueue.global(qos: .userInitiated).async {
+        promise.resolve(try? String(contentsOf: fileURL, encoding: .utf8))
+      }
+    }
+
+    AsyncFunction("writePickedFile") { (url: String, contents: String, promise: Promise) in
+      guard let fileURL = URL(string: url), fileURL.isFileURL else {
+        promise.resolve(false)
+        return
+      }
+      DispatchQueue.global(qos: .userInitiated).async {
+        do {
+          try contents.write(to: fileURL, atomically: true, encoding: .utf8)
+          promise.resolve(true)
+        } catch {
+          promise.resolve(false)
+        }
+      }
+    }
+
     Function("readDocument") { (name: String) -> String? in DocumentStore.read(name) }
 
     Function("writeDocument") { (name: String, contents: String) in try DocumentStore.write(name, contents) }

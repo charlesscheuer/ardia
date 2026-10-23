@@ -49,6 +49,7 @@ export type Settings = {
   showSidebarButton: boolean;
   batterySaverWhen: BatterySaverWhen;
   extensionSidePanelWidth: number;
+  chatPanelWidth: number;
 
   showFullUrl: boolean;
   allowJavaScriptFromAppleEvents: boolean;
@@ -103,6 +104,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showSidebarButton: true,
   batterySaverWhen: "lowBattery",
   extensionSidePanelWidth: 360,
+  chatPanelWidth: 380,
   showFullUrl: false,
   allowJavaScriptFromAppleEvents: false,
   cliControl: false,

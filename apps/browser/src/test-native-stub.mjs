@@ -3,6 +3,12 @@ export const readDocument = (name) => docs.get(name) ?? null;
 export const writeDocument = (name, contents) => docs.set(name, contents);
 export const bangListServer = { reply: null };
 export const fetchBangList = (etag) => (bangListServer.reply ? bangListServer.reply(etag) : null);
+export const copyText = () => {};
+export const pickedFiles = { urls: [] };
+export const pickFiles = () => Promise.resolve(pickedFiles.urls);
+export const pickedFileContents = new Map();
+export const readPickedFile = (url) => Promise.resolve(pickedFileContents.get(url) ?? null);
+export const writePickedFile = (url, contents) => (pickedFileContents.set(url, contents), Promise.resolve(true));
 export const heldSaves = { on: false, queue: [] };
 export const saveDocument = (name, contents) =>
   new Promise((resolve) => {

@@ -18,6 +18,7 @@ export type BrowserCommand =
   | "restoreClosed"
   | "focusCommandBar"
   | "focusCenteredCommandBar"
+  | "toggleChatPanel"
   | "closeTab"
   | "closeAllTabs"
   | "print"
@@ -226,6 +227,8 @@ const Shell = requireNativeModule<{
   switcherPointerMoved?(): boolean;
   startDictation(): void;
   pickFiles(): Promise<string[]>;
+  readPickedFile?(url: string): Promise<string | null>;
+  writePickedFile?(url: string, contents: string): Promise<boolean>;
   readDocument(name: string): string | null;
   writeDocument(name: string, contents: string): void;
   saveDocument(name: string, contents: string): Promise<void>;
@@ -272,6 +275,9 @@ export const claimFocus = (generation: number, tag: number) => void Shell.claimF
 export const restartSwitcherPointer = () => Shell.setSwitcherCapture(true);
 export const switcherPointerMoved = () => Shell.switcherPointerMoved?.() ?? true;
 export const pickFiles = () => Shell.pickFiles();
+export const readPickedFile = (url: string): Promise<string | null> => Shell.readPickedFile?.(url) ?? Promise.resolve(null);
+export const writePickedFile = (url: string, contents: string): Promise<boolean> =>
+  Shell.writePickedFile?.(url, contents) ?? Promise.resolve(false);
 
 export function copyText(text: string) {
   Shell.copyText(text);
