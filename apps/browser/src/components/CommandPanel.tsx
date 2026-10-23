@@ -160,10 +160,11 @@ function CenteredSwitcher({
   const width = windowWidth > 0 ? Math.min(SWITCHER_WIDTH, Math.max(MIN_WIDTH, windowWidth - WINDOW_MARGIN * 2)) : SWITCHER_WIDTH;
   const showStrip = windowHeight === 0 || windowHeight >= SWITCHER_STRIP_MIN_HEIGHT;
   const scale = progress.interpolate({ inputRange: [0, 1], outputRange: [CENTRED_START_SCALE, 1] });
+  const top = Math.max(WINDOW_MARGIN, Math.round(windowHeight * CENTRED_TOP_SHARE));
   return (
     <View
       pointerEvents="box-none"
-      style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}
+      style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0, alignItems: "center", paddingTop: top }}
     >
       <Animated.View style={{ width, opacity: progress, transform: [{ scale }] }}>
         {showStrip ? <TabPreviewStrip windowId={windowId} activeTabId={tabId} /> : null}

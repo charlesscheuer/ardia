@@ -63,7 +63,6 @@ const dark = {
 
   ntpBarSolid: "#2E2C28",
   ntpBarBorder: "rgba(255,255,255,0.06)",
-  ntpGreeting: "#E7E5E4",
   heroGo: "#1888F1",
   heroGoIdle: "rgba(43,158,255,0.5)",
   heroGoText: "#FFFFFF",
@@ -118,7 +117,6 @@ const light: typeof dark = {
 
   ntpBarSolid: "#FBFBFB",
   ntpBarBorder: "rgba(0,0,0,0.06)",
-  ntpGreeting: "#191715",
   heroGo: "#2E9DFF",
   heroGoIdle: "#8CD0FF",
   heroGoText: "#FFFFFF",
