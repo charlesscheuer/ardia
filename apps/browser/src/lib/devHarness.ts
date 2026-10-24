@@ -37,6 +37,9 @@ export function startDevHarness() {
     get checkIn(): typeof import("./defaultBrowserCheckIn") {
       return require("./defaultBrowserCheckIn");
     },
+    get chat(): typeof import("../components/chat/state") {
+      return require("../components/chat/state");
+    },
     get media(): typeof import("../components/media/state").useMedia {
       return require("../components/media/state").useMedia;
     },

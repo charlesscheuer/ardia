@@ -3,6 +3,8 @@ import { test } from "node:test";
 
 const { formatPicks, formatSelection } = await import("./agentationOutput.ts");
 const { lineDiff, diffCounts } = await import("./diff.ts");
+const { bridgeComment, bridgeElement, newAgentReplies, receiptTarget } = await import("./bridge.ts");
+const { inspectedPick } = await import("./inspector.ts");
 
 const pick = {
   element: 'button.primary "Save"',
@@ -55,4 +57,91 @@ test("lineDiff of identical text is all same", () => {
   const lines = lineDiff("one\ntwo", "one\ntwo");
   assert.ok(lines.every((l) => l.kind === "same"));
   assert.deepEqual(diffCounts(lines), { added: 0, removed: 0 });
+});
+
+const page = { title: "Settings", url: "http://localhost:3000/settings", host: "localhost" };
+
+test("bridgeElement turns a pick into the InterfaceKit element shape", () => {
+  assert.deepEqual(bridgeElement({ ...pick, fullPath: "html > body > div#root > button#save.primary" }, page), {
+    selector: "html > body > div#root > button#save.primary",
+    tag: "button",
+    id: "save",
+    classes: ["primary", "large"],
+    path: "html > body > div.app > button.primary",
+    textContent: "Save your changes",
+    name: 'button.primary "Save"',
+  });
+});
+
+test("bridgeElement falls back to the page body without a pick", () => {
+  assert.deepEqual(bridgeElement(undefined, page), { selector: "body", tag: "body", classes: [], path: "html > body", name: "Settings" });
+});
+
+test("bridgeComment sends the message with agentation context, routed like an extension comment", () => {
+  const comment = bridgeComment({
+    text: "Make this button blue",
+    picks: [pick],
+    selection: null,
+    page,
+    workingFile: { url: "file:///Users/me/app/src/Save.tsx", name: "Save.tsx", content: "" },
+    requestId: "r1",
+    timestamp: "2026-10-23T10:00:00.000Z",
+  });
+  assert.equal(comment.source, "extension");
+  assert.equal(comment.workerHint, "opencode");
+  assert.equal(comment.url, page.url);
+  assert.equal(comment.element.selector, pick.fullPath);
+  assert.deepEqual(comment.anchor, { selector: pick.fullPath });
+  assert.match(comment.comment, /^Make this button blue\n\n## Page Feedback: localhost/);
+  assert.match(comment.comment, /Working file: \/Users\/me\/app\/src\/Save\.tsx$/);
+  assert.equal(comment.threadId, undefined);
+});
+
+test("bridgeComment continues a bridge thread in its worktree", () => {
+  const comment = bridgeComment({ text: "Also the border", picks: [], selection: null, page, workingFile: null, thread: { id: 7, workspace: "/w/tree" }, requestId: "r2", timestamp: "t" });
+  assert.equal(comment.threadId, 7);
+  assert.equal(comment.workspace, "/w/tree");
+  assert.equal(comment.comment, "Also the border");
+});
+
+test("newAgentReplies keeps only agent messages after the last one seen", () => {
+  const thread = {
+    id: 1,
+    url: page.url,
+    status: "done",
+    messages: [
+      { role: "agent", text: "old", ts: "2026-10-23T09:00:00.000Z" },
+      { role: "user", text: "ask", ts: "2026-10-23T10:00:00.000Z" },
+      { role: "agent", text: "done", ts: "2026-10-23T10:05:00.000Z" },
+    ],
+  };
+  assert.deepEqual(newAgentReplies(thread, "2026-10-23T10:00:00.000Z").map((m) => m.text), ["done"]);
+});
+
+test("receiptTarget names where the bridge sent a message", () => {
+  assert.equal(receiptTarget({ threadId: 1, worker: "opencode" }), "opencode");
+  assert.equal(receiptTarget({ threadId: 1, worker: null, mode: "aether" }), "Aether");
+  assert.equal(receiptTarget({ threadId: 1, worker: null }), null);
+});
+
+test("inspectedPick turns an InterfaceKit selection into a chat reference", () => {
+  const out = inspectedPick({
+    selector: "main > h1.title",
+    tag: "h1",
+    classes: ["title", "big", "x"],
+    path: "body > main > h1",
+    textContent: "  Hello\n   world ",
+    rect: { x: 1, y: 2, width: 3, height: 4 },
+  });
+  assert.equal(out.element, "h1.title.big");
+  assert.equal(out.fullPath, "main > h1.title");
+  assert.equal(out.elementPath, "body > main > h1");
+  assert.equal(out.nearbyText, "Hello world");
+  assert.deepEqual(out.boundingBox, { x: 1, y: 2, width: 3, height: 4 });
+  assert.equal(inspectedPick({ selector: "#a", name: "Save button" }).element, "Save button");
+});
+
+test("bridgeComment carries InterfaceKit style edits", () => {
+  const comment = bridgeComment({ text: "x", picks: [], selection: null, page, workingFile: null, pendingEdits: "color: red", requestId: "r3", timestamp: "t" });
+  assert.equal(comment.pendingEdits, "color: red");
 });

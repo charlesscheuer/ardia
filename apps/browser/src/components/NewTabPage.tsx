@@ -4,6 +4,7 @@ import { Surface } from "@ardia/shell";
 import { StyleSheet, View } from "react-native";
 import { hex, layout, useTheme } from "../lib/theme";
 import { useWindowId } from "../store/hooks";
+import { DropdownHost } from "./Dropdown";
 import { NewTabExtras } from "./ntp";
 import { useOnboarding } from "./onboarding/state";
 import { Omnibox } from "./Omnibox";
@@ -48,29 +49,31 @@ export function NewTabPage({ tabId, toolbar = true }: { tabId: string; toolbar?:
 
   return (
     <View style={{ flex: 1 }} onLayout={(e) => setSize(e.nativeEvent.layout)}>
-      {playIntro && theme.powerUpPalette && (
-        <PowerUp
-          style={StyleSheet.absoluteFill}
-          palette={theme.powerUpPalette}
-          speed={1}
-          origin={0.5}
-          cornerRadius={BAR_RADIUS}
-          halo={bar}
-        />
-      )}
-      <View onLayout={(e) => setPanelHeight(e.nativeEvent.layout.height)} style={{ position: "absolute", left: x, top, width }}>
-        <Surface style={StyleSheet.absoluteFill} fill="#00000000" cornerRadius={BAR_RADIUS} shadowColor="#000000" shadowOpacity={theme.dark ? 0.18 : 0.07} shadowRadius={1} shadowOffset={[0, 1]} />
-        <Surface style={StyleSheet.absoluteFill} fill="#00000000" cornerRadius={BAR_RADIUS} shadowColor="#000000" shadowOpacity={theme.dark ? 0.18 : 0.06} shadowRadius={6} shadowOffset={[0, 6]} />
-        <Surface
-          fill={hex(theme.ntpBarSolid)}
-          cornerRadius={BAR_RADIUS}
-          borderColor={hex(theme.ntpBarBorder)}
-          borderWidth={BAR_BORDER}
-        >
-          {onboarding ? <View style={{ height: BAR_HEIGHT - 2 * BAR_BORDER }} /> : <Omnibox variant="hero" tabId={tabId} />}
-        </Surface>
-      </View>
-      <NewTabExtras size={size} bar={bar} />
+      <DropdownHost>
+        {playIntro && theme.powerUpPalette && (
+          <PowerUp
+            style={StyleSheet.absoluteFill}
+            palette={theme.powerUpPalette}
+            speed={1}
+            origin={0.5}
+            cornerRadius={BAR_RADIUS}
+            halo={bar}
+          />
+        )}
+        <View onLayout={(e) => setPanelHeight(e.nativeEvent.layout.height)} style={{ position: "absolute", left: x, top, width }}>
+          <Surface style={StyleSheet.absoluteFill} fill="#00000000" cornerRadius={BAR_RADIUS} shadowColor="#000000" shadowOpacity={theme.dark ? 0.18 : 0.07} shadowRadius={1} shadowOffset={[0, 1]} />
+          <Surface style={StyleSheet.absoluteFill} fill="#00000000" cornerRadius={BAR_RADIUS} shadowColor="#000000" shadowOpacity={theme.dark ? 0.18 : 0.06} shadowRadius={6} shadowOffset={[0, 6]} />
+          <Surface
+            fill={hex(theme.ntpBarSolid)}
+            cornerRadius={BAR_RADIUS}
+            borderColor={hex(theme.ntpBarBorder)}
+            borderWidth={BAR_BORDER}
+          >
+            {onboarding ? <View style={{ height: BAR_HEIGHT - 2 * BAR_BORDER }} /> : <Omnibox variant="hero" tabId={tabId} />}
+          </Surface>
+        </View>
+        <NewTabExtras size={size} bar={bar} />
+      </DropdownHost>
     </View>
   );
 }

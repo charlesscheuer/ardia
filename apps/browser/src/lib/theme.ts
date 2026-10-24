@@ -66,6 +66,10 @@ const dark = {
   heroGo: "#1888F1",
   heroGoIdle: "rgba(43,158,255,0.5)",
   heroGoText: "#FFFFFF",
+  composerFocus: "#32302C",
+  composerFocusBorder: "rgba(255,255,255,0.1)",
+  menuSurface: "#262221",
+  menuBorder: "rgba(255,255,255,0.07)",
   accent: "#4A77D4",
 };
 
@@ -120,6 +124,10 @@ const light: typeof dark = {
   heroGo: "#2E9DFF",
   heroGoIdle: "#8CD0FF",
   heroGoText: "#FFFFFF",
+  composerFocus: "#FDFDFC",
+  composerFocusBorder: "rgba(0,0,0,0.1)",
+  menuSurface: "#FFFFFF",
+  menuBorder: "rgba(0,0,0,0.07)",
   accent: "#6395FC",
 };
 

@@ -24,7 +24,8 @@ import { useDropdownStart } from "./omnibox/dropdownStart";
 import { useInlineCompletion } from "./omnibox/useInlineCompletion";
 import { keywordScope, offeredScope, useSuggestions } from "./omnibox/useSuggestions";
 import { setPopover } from "./layout/pageState";
-import { IconButton, useHover } from "./primitives";
+import { DropdownSymbol, useDropdownHost } from "./Dropdown";
+import { Favicon, IconButton, useHover } from "./primitives";
 
 type Variant = "panel" | "hero" | "sidebar" | "centered";
 
@@ -534,6 +535,14 @@ export function Omnibox({
   );
 }
 
+function hostOf(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
 function destinationLabel(s: Suggestion | undefined): string {
   if (s?.kind === "search") return s.engine;
   if (s?.kind === "calc") return "Copy";
@@ -544,6 +553,15 @@ const AddChip = memo(function AddChip({ tabId, onGo }: { tabId: string; onGo(url
   const theme = useTheme();
   const windowId = useWindowId();
   const { hovered, hoverProps } = useHover();
+  const host = useDropdownHost();
+  const chip = useRef<View>(null);
+  const choose = async (choice: string | null) => {
+    if (choice?.startsWith("tab:")) switchFromBar(choice.slice(4), "", tabId, "current");
+    if (choice === "files") {
+      const [file] = await pickFiles();
+      if (file) onGo(file);
+    }
+  };
   const open = async () => {
     const s = useBrowser.getState();
     const active = activeTabId(s, windowId);
@@ -551,19 +569,31 @@ const AddChip = memo(function AddChip({ tabId, onGo }: { tabId: string; onGo(url
       .map((id) => s.tabs[id]!)
       .filter((t) => t.id !== active && t.url)
       .slice(0, 12);
-    const choice = await showMenu([
-      ...others.map((t) => ({ id: `tab:${t.id}`, title: t.title || displayUrl(t.url) })),
-      ...(others.length ? [{ separator: true as const }] : []),
-      { id: "files", title: "Open File…", symbol: "doc" },
-    ]);
-    if (choice?.startsWith("tab:")) switchFromBar(choice.slice(4), "", tabId, "current");
-    if (choice === "files") {
-      const [file] = await pickFiles();
-      if (file) onGo(file);
+    if (host && chip.current) {
+      host({
+        anchor: chip.current,
+        width: 320,
+        sections: [
+          {
+            title: "Open tabs",
+            items: others.map((t) => ({ id: `tab:${t.id}`, label: t.title || displayUrl(t.url), icon: <Favicon url={t.url} favicon={t.favicon} size={16} />, detail: hostOf(t.url) })),
+          },
+          { title: "From your Mac", items: [{ id: "files", label: "Open file…", icon: <DropdownSymbol name="doc" /> }] },
+        ],
+        onSelect: (id) => void choose(id),
+      });
+      return;
     }
+    await choose(
+      await showMenu([
+        ...others.map((t) => ({ id: `tab:${t.id}`, title: t.title || displayUrl(t.url) })),
+        ...(others.length ? [{ separator: true as const }] : []),
+        { id: "files", title: "Open File…", symbol: "doc" },
+      ]),
+    );
   };
   return (
-    <View {...hoverProps}>
+    <View ref={chip} {...hoverProps}>
     <Pressable onPress={open}>
       <View
         style={{

@@ -1,10 +1,12 @@
 import type { WebViewHandle } from "@ardia/ardiacore";
 import { copyText } from "@ardia/shell";
+import { BRIDGE_URL } from "./bridge";
 
-export type ChatAccountId = "claude" | "chatgpt" | "codex";
+export type ChatAccountId = "claude" | "chatgpt" | "codex" | "local";
 
 export type ChatAccount = {
   id: ChatAccountId;
+  kind: "web" | "bridge";
   name: string;
   service: string;
   home: string;
@@ -16,6 +18,7 @@ export type ChatAccount = {
 export const CHAT_ACCOUNTS: ChatAccount[] = [
   {
     id: "claude",
+    kind: "web",
     name: "Claude",
     service: "Anthropic",
     home: "https://claude.ai/new",
@@ -25,6 +28,7 @@ export const CHAT_ACCOUNTS: ChatAccount[] = [
   },
   {
     id: "chatgpt",
+    kind: "web",
     name: "ChatGPT",
     service: "OpenAI",
     home: "https://chatgpt.com/",
@@ -34,11 +38,21 @@ export const CHAT_ACCOUNTS: ChatAccount[] = [
   },
   {
     id: "codex",
+    kind: "web",
     name: "Codex",
     service: "OpenAI",
     home: "https://chatgpt.com/codex",
     host: "chatgpt.com",
     loginPath: "/auth/login",
+  },
+  {
+    id: "local",
+    kind: "bridge",
+    name: "InterfaceKit",
+    service: "local bridge",
+    home: BRIDGE_URL,
+    host: "127.0.0.1",
+    loginPath: "",
   },
 ];
 
@@ -86,6 +100,8 @@ const typeIntoSessionScript = (text: string) => `
   return post("result", JSON.stringify("sent"));
 })()`;
 
+export const handOffUrl = (account: ChatAccount, prompt: string, firstInThread: boolean) => (firstInThread && account.handOff ? account.handOff(prompt) : null);
+
 export async function sendToAccount(account: ChatAccount, prompt: string, firstInThread: boolean): Promise<Delivery> {
   const handle = accountWebView(account.id);
   if (!handle) {
@@ -113,4 +129,31 @@ export async function pullLastCodeBlock(account: ChatAccount): Promise<string> {
   const handle = accountWebView(account.id);
   if (!handle) return "";
   return (await handle.evaluate<string>(LAST_CODE_BLOCK).catch(() => "")) ?? "";
+}
+
+export type SessionReading = { href: string; count: number; text: string; streaming: boolean };
+
+const REPLY_SELECTORS: Partial<Record<ChatAccountId, { message: string; streaming: string }>> = {
+  claude: { message: "[data-is-streaming], .font-claude-response, .font-claude-message", streaming: '[data-is-streaming="true"]' },
+  chatgpt: { message: '[data-message-author-role="assistant"]', streaming: '[data-testid="stop-button"], button[aria-label*="Stop"]' },
+  codex: { message: '[data-message-author-role="assistant"]', streaming: '[data-testid="stop-button"], button[aria-label*="Stop"]' },
+};
+
+const readSessionScript = (selectors: { message: string; streaming: string }) => `
+(() => {
+  const nodes = [...document.querySelectorAll(${JSON.stringify(selectors.message)})].filter((el) => !el.parentElement || !el.parentElement.closest(${JSON.stringify(selectors.message)}));
+  const last = nodes[nodes.length - 1];
+  return post("result", JSON.stringify({
+    href: location.href,
+    count: nodes.length,
+    text: last ? last.innerText.trim() : "",
+    streaming: !!document.querySelector(${JSON.stringify(selectors.streaming)}),
+  }));
+})()`;
+
+export async function readSession(account: ChatAccount): Promise<SessionReading | null> {
+  const selectors = REPLY_SELECTORS[account.id];
+  const handle = accountWebView(account.id);
+  if (!selectors || !handle) return null;
+  return (await handle.evaluate<SessionReading>(readSessionScript(selectors)).catch(() => null)) ?? null;
 }
