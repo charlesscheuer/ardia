@@ -24,7 +24,8 @@
       "TranslateModule",
       "WindowProfileModule",
       "CliModule",
-      "UserScriptsModule"
+      "UserScriptsModule",
+      "ProjectsModule"
     ]
   }
 }

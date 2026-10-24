@@ -6,6 +6,7 @@ export * from "./app";
 export * from "./live";
 export * from "./cli";
 export * from "./userScripts";
+export * from "./projects";
 
 export type BrowserCommand =
   | "newTab"
