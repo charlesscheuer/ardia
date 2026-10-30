@@ -44,6 +44,7 @@ export function usePeek(enabled: boolean, arc = false, held: () => boolean = () 
   const hide = () => {
     waitingForFocus.current = false;
     clearTimeout(hideTimer.current);
+    if (!out.current) return;
     hideTimer.current = setTimeout(() => {
       heldBack.current = held();
       if (!heldBack.current) slideOut();
