@@ -41,10 +41,12 @@ export function usePeek(enabled: boolean, arc = false, held: () => boolean = () 
     setLive(true);
     animate(1);
   };
+  const cancelPending = () => {
+    waitingForFocus.current &&= held();
+  };
   const hide = () => {
-    waitingForFocus.current = false;
     clearTimeout(hideTimer.current);
-    if (!out.current) return;
+    if (!out.current) return cancelPending();
     hideTimer.current = setTimeout(() => {
       heldBack.current = held();
       if (!heldBack.current) slideOut();
@@ -68,5 +70,5 @@ export function usePeek(enabled: boolean, arc = false, held: () => boolean = () 
     if (live) slideOut();
   }, [enabled]);
   useEffect(() => () => clearTimeout(hideTimer.current), []);
-  return { slide, live, show, hide, recheck };
+  return { slide, live, show, hide, recheck, cancelPending };
 }
