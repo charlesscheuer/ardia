@@ -41,8 +41,8 @@ export function usePeek(enabled: boolean, arc = false, held: () => boolean = () 
     setLive(true);
     animate(1);
   };
-  const cancelPending = () => {
-    waitingForFocus.current &&= held();
+  const cancelPending = (pointerStillAtEdge = false) => {
+    waitingForFocus.current &&= pointerStillAtEdge;
   };
   const hide = () => {
     clearTimeout(hideTimer.current);
