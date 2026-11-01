@@ -114,8 +114,8 @@ export function TopStripPeek({ windowWidth, enabled }: { windowWidth: number; en
     return () => void setTrafficLightsCenter(windowId, null);
   }, [enabled, windowId]);
   const leaveStrip = (e: { nativeEvent: { clientY: number } }) => {
-    if (!live) cancelPending();
-    else if (e.nativeEvent.clientY < PEEK_HOVER_HEIGHT) hide();
+    if (live && e.nativeEvent.clientY < PEEK_HOVER_HEIGHT) hide();
+    else cancelPending();
   };
   const leavePanel = (e: { nativeEvent: { clientX: number; clientY: number } }) => {
     const x = e.nativeEvent.clientX + PEEK_LEFT;
