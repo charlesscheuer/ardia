@@ -1,6 +1,9 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, View, type LayoutChangeEvent } from "react-native";
 import { useTheme } from "../../ui/theme";
+import { ThemeBackdrop } from "../../settings/ThemeControls";
+import { resolveTheme } from "../../../lib/profileLook";
+import type { ProfileTheme } from "../../../state/browser/types";
 import { font } from "../../ui/tokens";
 import { DEFAULT_SETTINGS, type Settings } from "../../../state/settings/settings";
 import type { PreviewId } from "../../../state/onboarding/previewIds";
@@ -59,9 +62,9 @@ function useFadeBetween<T>(value: T) {
   return { layers, fade };
 }
 
-type MockWindowProps = { settings: Partial<Settings>; accent: string; focus: PreviewId | null; switcher?: boolean };
+type MockWindowProps = { settings: Partial<Settings>; accent: string; theme?: ProfileTheme | null; focus: PreviewId | null; switcher?: boolean };
 
-export function MockWindow({ settings, accent, focus, switcher = false }: MockWindowProps) {
+export function MockWindow({ settings, accent, theme = null, focus, switcher = false }: MockWindowProps) {
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   const onLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
@@ -69,12 +72,12 @@ export function MockWindow({ settings, accent, focus, switcher = false }: MockWi
   };
   return (
     <View style={{ flex: 1, alignSelf: "stretch" }} onLayout={onLayout}>
-      {size ? <Window width={size.width} height={size.height} settings={settings} accent={accent} focus={focus} switcher={switcher} /> : null}
+      {size ? <Window width={size.width} height={size.height} settings={settings} accent={accent} theme={theme} focus={focus} switcher={switcher} /> : null}
     </View>
   );
 }
 
-function Window({ width, height, settings, accent, focus, switcher }: MockWindowProps & { width: number; height: number; switcher: boolean }) {
+function Window({ width, height, settings, accent, theme: custom, focus, switcher }: MockWindowProps & { width: number; height: number; switcher: boolean }) {
   const inner = { w: width - INSET.x * 2, h: height - INSET.top - INSET.bottom };
   const g = useMemo(() => geo(inner.w, inner.h), [inner.w, inner.h]);
   const shape = shapeOf(settings);
@@ -94,7 +97,7 @@ function Window({ width, height, settings, accent, focus, switcher }: MockWindow
   }, [focus]);
   const look = lookFor(dark, accent);
   const opts = useMemo<SceneOpts>(() => ({ addressInSidebar: shape.addressInSidebar, systemDark, accent }), [shape.addressInSidebar, systemDark, accent]);
-  const layer = (isDark: boolean) => <WindowState g={g} look={lookFor(isDark, accent)} accent={accent} lay={lay} addr={addr} site={site} icons={switcher ? icons : null} />;
+  const layer = (isDark: boolean) => <WindowState g={g} look={lookFor(isDark, accent)} accent={accent} custom={custom ?? null} lay={lay} addr={addr} site={site} icons={switcher ? icons : null} />;
   return (
     <View style={{ width, height }}>
       <WindowFrame g={g} look={look} edge={dark ? mockInk.windowEdge.dark : mockInk.windowEdge.light} style={{ position: "absolute", left: INSET.x, top: INSET.top, width: inner.w, height: inner.h }}>
@@ -134,21 +137,27 @@ function AutoBadge({ g, look }: { g: Geo; look: Look }) {
   );
 }
 
-function AccentBackdrop({ g, look, accent }: { g: Geo; look: Look; accent: string }) {
+function AccentBackdrop({ g, look, accent, custom }: { g: Geo; look: Look; accent: string; custom: ProfileTheme | null }) {
   const { layers, fade } = useFadeBetween(accent);
+  const customShown = useTo(custom ? 1 : 0, true, mockMotion.fade);
   return (
     <View style={fill} pointerEvents="none">
       {layers.below !== null ? <Backdrop g={g} look={lookFor(look.dark, layers.below)} /> : null}
       <Animated.View style={[fill, { opacity: layers.below !== null ? fade : 1 }]}>
         <Backdrop g={g} look={lookFor(look.dark, layers.above)} />
       </Animated.View>
+      {custom ? (
+        <Animated.View style={[fill, { opacity: customShown }]}>
+          <ThemeBackdrop theme={resolveTheme(custom, look.dark)} dark={look.dark} style={fill} />
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
 
-type WindowStateProps = { g: Geo; look: Look; accent: string; lay: Animated.Value; addr: Animated.Value; site: Animated.Value; icons: Animated.Value | null };
+type WindowStateProps = { g: Geo; look: Look; accent: string; custom: ProfileTheme | null; lay: Animated.Value; addr: Animated.Value; site: Animated.Value; icons: Animated.Value | null };
 
-const WindowState = memo(function WindowState({ g, look, accent, lay, addr, site, icons }: WindowStateProps) {
+const WindowState = memo(function WindowState({ g, look, accent, custom, lay, addr, site, icons }: WindowStateProps) {
   const s = g.s;
   const lerp = (v: Animated.Value, a: number, b: number) => v.interpolate({ inputRange: [0, 1], outputRange: [a * s, b * s] });
   const fade = (v: Animated.Value, a: number, b: number) => v.interpolate({ inputRange: [0, 1], outputRange: [a, b] });
@@ -165,7 +174,7 @@ const WindowState = memo(function WindowState({ g, look, accent, lay, addr, site
   );
   return (
     <View style={fill}>
-      <AccentBackdrop g={g} look={look} accent={accent} />
+      <AccentBackdrop g={g} look={look} accent={accent} custom={custom} />
       <Animated.View style={{ position: "absolute", left: 0, top: 0, width: 80 * s, height: 50 * s, transform: [{ translateX: lerp(lay, 0, 20.75 - 25) }, { translateY: Animated.add(lerp(lay, 0, LIGHTS_Y.strip - LIGHTS_Y.toolbar), lerp(addr, 0, LIGHTS_Y.field - LIGHTS_Y.toolbar)) }] }}>
         <Lights g={g} />
       </Animated.View>
