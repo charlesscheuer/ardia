@@ -1,5 +1,6 @@
 import { duration, period } from "../ui/motion";
-import { colorRoles, display, font, ink, lineHeight, proseLineHeight, radius, space, tracking } from "../ui/tokens";
+import type { Theme } from "../ui/theme";
+import { display, font, ink, lineHeight, proseLineHeight, radius, space, tracking } from "../ui/tokens";
 
 const dark = {
   background: "#000000",
@@ -16,7 +17,6 @@ const dark = {
   rowSubtitle: "rgba(255,255,255,0.6)",
   primary: "rgba(255,255,255,0.85)",
   primaryHover: "rgba(255,255,255,0.9)",
-  primaryText: colorRoles.dark.onPrimary,
   button: "rgba(255,255,255,0.08)",
   buttonHover: "rgba(255,255,255,0.1)",
   buttonText: "#FFFFFF",
@@ -24,21 +24,23 @@ const dark = {
   noThanksBorder: "rgba(255,255,255,0.2)",
   noThanksText: "rgba(255,255,255,0.5)",
   iconContainer: "rgba(255,255,255,0.15)",
-  separator: colorRoles.dark.divider,
   preview: "rgba(255,255,255,0.04)",
   previewBorder: "rgba(255,255,255,0.1)",
   progressTrack: "rgba(255,255,255,0.12)",
   progressFill: "#FDD023",
-  checkbox: colorRoles.dark.ringRadioFill,
-  checkboxBorder: colorRoles.dark.ringRadioBorder,
-  checkboxOn: colorRoles.dark.ringRadioOn,
-  checkmark: colorRoles.dark.onPrimary,
   tourScrim: "#00000080",
 };
 
-export type OnboardingColors = typeof dark;
+export type OnboardingColors = typeof dark & {
+  primaryText: string;
+  separator: string;
+  checkbox: string;
+  checkboxBorder: string;
+  checkboxOn: string;
+  checkmark: string;
+};
 
-const light: OnboardingColors = {
+const light: typeof dark = {
   background: "#FFFFFF",
   overlay: "rgba(255,255,255,0.6)",
   card: "#FFFFFF",
@@ -53,7 +55,6 @@ const light: OnboardingColors = {
   rowSubtitle: "rgba(0,0,0,0.6)",
   primary: "rgba(0,0,0,0.85)",
   primaryHover: "rgba(0,0,0,0.9)",
-  primaryText: colorRoles.light.onPrimary,
   button: "rgba(0,0,0,0.08)",
   buttonHover: "rgba(0,0,0,0.1)",
   buttonText: "#000000",
@@ -61,19 +62,30 @@ const light: OnboardingColors = {
   noThanksBorder: "rgba(0,0,0,0.1)",
   noThanksText: "rgba(0,0,0,0.5)",
   iconContainer: "rgba(0,0,0,0.03)",
-  separator: colorRoles.light.divider,
   preview: "rgba(0,0,0,0.025)",
   previewBorder: "rgba(0,0,0,0.07)",
   progressTrack: "rgba(0,0,0,0.08)",
   progressFill: "#FDD023",
-  checkbox: colorRoles.light.ringRadioFill,
-  checkboxBorder: colorRoles.light.ringRadioBorder,
-  checkboxOn: colorRoles.light.ringRadioOn,
-  checkmark: colorRoles.light.onPrimary,
   tourScrim: "#0000004D",
 };
 
-export const onboardingColors = { dark, light } as const;
+const byTheme = new WeakMap<Theme, OnboardingColors>();
+
+export function onboardingColorsOf(theme: Theme): OnboardingColors {
+  let colors = byTheme.get(theme);
+  if (!colors) {
+    const roles = {
+      primaryText: theme.onPrimary,
+      separator: theme.divider,
+      checkbox: theme.ringRadioFill,
+      checkboxBorder: theme.ringRadioBorder,
+      checkboxOn: theme.ringRadioOn,
+      checkmark: theme.onPrimary,
+    };
+    byTheme.set(theme, (colors = { ...(theme.dark ? dark : light), ...roles }));
+  }
+  return colors;
+}
 
 export const trafficLights = ["#FF5F57", "#FEBC2E", "#28C840"] as const;
 

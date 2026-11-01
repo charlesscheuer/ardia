@@ -1,6 +1,6 @@
 import { useTheme } from "../ui/theme";
 import { duration } from "../ui/motion";
-import { colorRoles, font, ink, shadow, withAlpha, type ShadowLevel } from "../ui/tokens";
+import { font, ink, shadow, withAlpha, type ShadowLevel } from "../ui/tokens";
 import type { GroupColor } from "../../state/browser/types";
 import { GROUP_COLORS } from "../../state/groups/tokens";
 
@@ -66,14 +66,13 @@ export function sidebarTokens(theme: { dark: boolean }): SidebarTokens {
   return theme.dark ? DARK : LIGHT;
 }
 
-const panelShadow = { dark: colorRoles.dark.panelShadowOpacity, light: colorRoles.light.panelShadowOpacity };
 
 export const SIDEBAR_SHADOW = {
   dragGhost: { color: ink.black, opacity: { dark: 0.45, light: 0.18 }, radius: 10, offset: [0, 4] },
   card: shadow.card,
   iconPicker: shadow.sheet,
   searchTabs: shadow.dialog,
-  tabSwitcher: { color: ink.black, opacity: panelShadow, radius: 28, offset: [0, 12] },
+  tabSwitcher: { ...shadow.dialog, radius: 28, offset: [0, 12] },
 } satisfies Record<string, ShadowLevel>;
 
 export const SELECTED_ROW_SHADOW_OFFSET: [number, number] = [0, 0.5];

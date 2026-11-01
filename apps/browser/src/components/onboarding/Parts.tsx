@@ -8,10 +8,10 @@ import { activeSteps, useOnboarding, type OnboardingStep } from "../../state/onb
 import { useQuestions } from "../../state/onboarding/questions";
 import { curve } from "../ui/motion";
 import { capsule, concentric, radius, space, tracking } from "../ui/tokens";
-import { onboardingColors, onboardingMotion, onboardingType, TILE_WIDTH } from "./tokens";
+import { onboardingColorsOf, onboardingMotion, onboardingType, TILE_WIDTH } from "./tokens";
 import { CARD_BORDER, ChoiceCard, SELECTED_BORDER } from "./ChoiceCard";
 
-export const useOnboardingColors = () => (useTheme().dark ? onboardingColors.dark : onboardingColors.light);
+export const useOnboardingColors = () => onboardingColorsOf(useTheme());
 
 export function Reveal({ delay = 0, children, style }: { delay?: number; children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const t = useRef(new Animated.Value(0)).current;

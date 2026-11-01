@@ -21,7 +21,7 @@ type Drop = { into: string } | { parentId: string; index: number };
 
 export function BookmarksPage({ tabId, profileId }: { tabId: string; profileId: string }) {
   const theme = useTheme();
-  const colors = theme.dark ? pagesColors.dark : pagesColors.light;
+  const colors = pagesColors(theme);
   const windowId = useTab(tabId, (t) => t?.windowId ?? "");
   const roots = useBookmarkRoots(profileId);
   const [folderId, setFolderId] = useState<string | null>(roots?.bar ?? null);

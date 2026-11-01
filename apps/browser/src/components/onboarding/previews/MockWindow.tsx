@@ -13,6 +13,7 @@ import { Pill } from "./Floating";
 import { CARD, CHIP, CRUMB_X, FIELD, fill, geo, LIGHTS_Y, ROW, SIDE_CARD_X, SIDEBAR_ICONS, STRIP_H, TOOLBAR_H, TOOLBAR_ICONS, type Geo } from "./geometry";
 import { Backdrop, Card, Crumb, FieldPlate, Glyph, Label, Lights, NavIcons, Rows, TabRow, ToolbarBand, TopTabPlate, WindowFrame } from "./Kit";
 import { lookFor, type Look } from "./look";
+import { useBasePaletteValue } from "../../../state/config/hooks";
 import { Page } from "./MockPages";
 import type { SceneOpts } from "./scene";
 import { tracker, useDemo } from "./timeline";
@@ -95,9 +96,10 @@ function Window({ width, height, settings, accent, theme: custom, focus, switche
     const timer = setTimeout(() => setDemo(null), 240);
     return () => clearTimeout(timer);
   }, [focus]);
-  const look = lookFor(dark, accent);
-  const opts = useMemo<SceneOpts>(() => ({ addressInSidebar: shape.addressInSidebar, systemDark, accent }), [shape.addressInSidebar, systemDark, accent]);
-  const layer = (isDark: boolean) => <WindowState g={g} look={lookFor(isDark, accent)} accent={accent} custom={custom ?? null} lay={lay} addr={addr} site={site} icons={switcher ? icons : null} />;
+  const palette = useBasePaletteValue();
+  const look = lookFor(dark, accent, palette);
+  const opts = useMemo<SceneOpts>(() => ({ addressInSidebar: shape.addressInSidebar, systemDark, accent, palette }), [shape.addressInSidebar, systemDark, accent, palette]);
+  const layer = (isDark: boolean) => <WindowState g={g} look={lookFor(isDark, accent, palette)} accent={accent} custom={custom ?? null} lay={lay} addr={addr} site={site} icons={switcher ? icons : null} />;
   return (
     <View style={{ width, height }}>
       <WindowFrame g={g} look={look} edge={dark ? mockInk.windowEdge.dark : mockInk.windowEdge.light} style={{ position: "absolute", left: INSET.x, top: INSET.top, width: inner.w, height: inner.h }}>
@@ -139,12 +141,13 @@ function AutoBadge({ g, look }: { g: Geo; look: Look }) {
 
 function AccentBackdrop({ g, look, accent, custom }: { g: Geo; look: Look; accent: string; custom: ProfileTheme | null }) {
   const { layers, fade } = useFadeBetween(accent);
+  const palette = useBasePaletteValue();
   const customShown = useTo(custom ? 1 : 0, true, mockMotion.fade);
   return (
     <View style={fill} pointerEvents="none">
-      {layers.below !== null ? <Backdrop g={g} look={lookFor(look.dark, layers.below)} /> : null}
+      {layers.below !== null ? <Backdrop g={g} look={lookFor(look.dark, layers.below, palette)} /> : null}
       <Animated.View style={[fill, { opacity: layers.below !== null ? fade : 1 }]}>
-        <Backdrop g={g} look={lookFor(look.dark, layers.above)} />
+        <Backdrop g={g} look={lookFor(look.dark, layers.above, palette)} />
       </Animated.View>
       {custom ? (
         <Animated.View style={[fill, { opacity: customShown }]}>

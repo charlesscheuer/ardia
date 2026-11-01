@@ -47,7 +47,7 @@ export function BookmarkRow({
   onDragEnd: (x: number, y: number) => void;
 }) {
   const theme = useTheme();
-  const colors = theme.dark ? pagesColors.dark : pagesColors.light;
+  const colors = pagesColors(theme);
   const node = useBookmarks((b) => b.nodes[id]);
   const path = useBookmarks((b) => (showPath ? bookmarkAncestors(b, id).map((a) => a.title).reverse().join(" › ") : ""));
   const { hovered, hoverProps } = useHover();

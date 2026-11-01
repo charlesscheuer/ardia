@@ -188,7 +188,7 @@ writeDocument(DOC, versionedJson(data, VERSION));
   `sync.json` and its `v` doesn't cover them: the `sync-state.nns` checkpoint (`{ covers, clock, scopes }`, 1; version 0
   includes the older bare scope map) and each `sync-journal-<n>.nns` part (1). The single `sync-journal.nns` from before
   numbered parts is still read first and emptied with them.
-- Out of scope: the Keychain token JSON, logs (`dev-console.log`, `telemetry-requests.log`), dev and bench results
+- Out of scope: `config-schema/*.json` (regenerated at every launch, `docs/config.md`), the Keychain token JSON, logs (`dev-console.log`, `telemetry-requests.log`), dev and bench results
   (`dev-eval-result.json`, `layout-watch.json`), test fixtures (`calendar-fixture.json`), and the legacy
   `bookmarks.json` / `history.json`, which are migration inputs read once. The sync payload (log and snapshot files,
   `v: 1`) and `switches-cache.json` have their own versions.

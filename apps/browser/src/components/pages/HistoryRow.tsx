@@ -107,7 +107,7 @@ export const HistoryRow = memo(function HistoryRow({
             alignItems: "center",
             paddingHorizontal: space.l,
             gap: space.l,
-            backgroundColor: selected ? (theme.dark ? pagesColors.dark : pagesColors.light).rowSelected : hovered ? theme.rowHover : theme.groupFill,
+            backgroundColor: selected ? pagesColors(theme).rowSelected : hovered ? theme.rowHover : theme.groupFill,
             borderTopLeftRadius: first ? r : 0,
             borderTopRightRadius: first ? r : 0,
             borderBottomLeftRadius: last ? r : 0,

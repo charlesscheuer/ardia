@@ -36,6 +36,7 @@ const SYSTEM_INFO: SystemInfo = {
 
 const LAUNCH_CONFIG: LaunchConfig = {
   dataDirectory: null,
+  configDirectory: "",
   background: false,
   isolated: false,
   testInstance: false,

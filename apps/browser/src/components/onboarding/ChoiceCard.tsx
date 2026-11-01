@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from "react-native";
 import { GlassFill, useGlass } from "../ui";
 import { useTheme } from "../ui/theme";
-import { onboardingColors } from "./tokens";
+import { onboardingColorsOf } from "./tokens";
 
 export const CARD_BORDER = StyleSheet.hairlineWidth * 2;
 export const SELECTED_BORDER = 1.5;
@@ -36,7 +36,7 @@ export function ChoiceCard({
   children,
   ...rest
 }: ChoiceCardProps) {
-  const colors = useTheme().dark ? onboardingColors.dark : onboardingColors.light;
+  const colors = onboardingColorsOf(useTheme());
   const glass = useGlass() && !plain && !dashed;
   const lit = selected || hovered;
   const strong = selected && outline === "strong";

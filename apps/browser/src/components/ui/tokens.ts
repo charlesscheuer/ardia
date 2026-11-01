@@ -349,15 +349,15 @@ export const weight = {
 
 export type Weight = keyof typeof weight;
 
-export type ShadowLevel = { color: string; opacity: { dark: number; light: number }; radius: number; offset: [number, number] };
+export type ShadowLevel = { color: string; opacity: { dark: number; light: number }; panelShare?: number; radius: number; offset: [number, number] };
 
 export const shadow = {
   tooltip: { color: "#000000", opacity: { dark: 0.15, light: 0.08 }, radius: 4, offset: [0, 1] },
   popover: { color: "#000000", opacity: { dark: 0.45, light: 0.16 }, radius: 18, offset: [0, 8] },
-  dialog: { color: "#000000", opacity: { dark: darkRoles.panelShadowOpacity, light: lightRoles.panelShadowOpacity }, radius: 24, offset: [0, 10] },
-  card: { color: "#000000", opacity: { dark: darkRoles.panelShadowOpacity * 0.8, light: lightRoles.panelShadowOpacity * 0.8 }, radius: 16, offset: [0, 6] },
-  sheet: { color: "#000000", opacity: { dark: darkRoles.panelShadowOpacity, light: lightRoles.panelShadowOpacity }, radius: 20, offset: [0, 8] },
-  peek: { color: "#000000", opacity: { dark: darkRoles.panelShadowOpacity, light: lightRoles.panelShadowOpacity }, radius: 20, offset: [0, 6] },
+  dialog: { color: "#000000", opacity: { dark: darkRoles.panelShadowOpacity, light: lightRoles.panelShadowOpacity }, panelShare: 1, radius: 24, offset: [0, 10] },
+  card: { color: "#000000", opacity: { dark: darkRoles.panelShadowOpacity * 0.8, light: lightRoles.panelShadowOpacity * 0.8 }, panelShare: 0.8, radius: 16, offset: [0, 6] },
+  sheet: { color: "#000000", opacity: { dark: darkRoles.panelShadowOpacity, light: lightRoles.panelShadowOpacity }, panelShare: 1, radius: 20, offset: [0, 8] },
+  peek: { color: "#000000", opacity: { dark: darkRoles.panelShadowOpacity, light: lightRoles.panelShadowOpacity }, panelShare: 1, radius: 20, offset: [0, 6] },
 } satisfies Record<string, ShadowLevel>;
 
 export type Shadow = keyof typeof shadow;
