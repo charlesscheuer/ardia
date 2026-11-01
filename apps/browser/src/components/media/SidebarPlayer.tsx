@@ -1,4 +1,4 @@
-import { Dot, Panel, Symbol, Button, useHover } from "../ui";
+import { Dot, Panel, Symbol, Button, tabularNums, Text, useHover } from "../ui";
 import { useShallow } from "zustand/react/shallow";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Image, Pressable, View } from "react-native";
@@ -15,9 +15,11 @@ import { GlassFill, useGlass } from "../ui/Glass";
 import { useArtwork } from "../../state/media/artwork";
 import {
   dismissPlayer,
+  formatTime,
   isPlaying,
   mediaCommand,
   playerTabFor,
+  positionOf,
   skipOrTrack,
   transportIcons,
   useHiddenPlayerTabs,
@@ -83,6 +85,19 @@ function useExpanded(hovered: boolean, held: boolean) {
 
 function PlayButton({ tabId, playing, size }: { tabId: string; playing: boolean; size: "m" | "l" }) {
   return <Button variant="icon" icon={playing ? "pause.fill" : "play.fill"} size={size} tooltip={playing ? "Pause" : "Play"} onPress={() => mediaCommand(tabId, "toggle")} />;
+}
+
+function TimeLeft({ session }: { session: Session }) {
+  const media = useMediaTokens();
+  useTicker(true);
+  const left = formatTime((session.duration ?? 0) - positionOf(session));
+  return (
+    <View accessibilityLabel={`${left} left`} style={{ height: BUTTON, minWidth: BUTTON, paddingHorizontal: space.xs, alignItems: "flex-end", justifyContent: "center" }}>
+      <Text size="caption" color={media.secondary} style={tabularNums}>
+        -{left}
+      </Text>
+    </View>
+  );
 }
 
 const PlayerControls = memo(function PlayerControls({ tabId, reveal, onSeeking }: { tabId: string; reveal: Animated.Value; onSeeking: (seeking: boolean) => void }) {
@@ -170,6 +185,8 @@ export function SidebarPlayer({ tabId }: { tabId: string }) {
         <PlayerRow tabId={tabId} mounted={mounted} hovered={hovered} reveal={reveal} />
         {expanded ? (
           <Button variant="icon" icon="xmark" size="m" tooltip="Close Player" onPress={() => dismissPlayer(tabId)} />
+        ) : playing && session.duration ? (
+          <TimeLeft session={session} />
         ) : (
           <PlayButton tabId={tabId} playing={playing} size="m" />
         )}
