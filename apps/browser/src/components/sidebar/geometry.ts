@@ -2,7 +2,7 @@ import { SIDEBAR_GROUP } from "../../lib/sidebarMetrics";
 import { layout } from "../ui/theme";
 import { radius } from "../ui/tokens";
 
-export const GROUP_PAD = SIDEBAR_GROUP.pad;
+export const LIVE_FOLDER_PAD = 2;
 export const GROUP_INDENT = SIDEBAR_GROUP.indent;
 export const GROUP_BORDER = SIDEBAR_GROUP.border;
 export const GROUP_RADIUS = SIDEBAR_GROUP.radius;
