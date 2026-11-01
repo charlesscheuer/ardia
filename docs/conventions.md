@@ -199,9 +199,10 @@ writeDocument(DOC, versionedJson(data, VERSION));
   `camelCase.test.mjs` (or `PascalCase.test.mjs` for a component).
 - At most 400 lines per TS/TSX file (`apps/browser/src`, `packages/*/src`), 600 per native file (`packages/*/ios`,
   `engine/ardiacore/src`, `engine/chromium/src`). Tests, fixtures and generated files (`packages/core/src/bangList.ts`,
-  `apps/browser/src/lib/emojiData.ts` from `apps/browser/scripts/emoji-data.mjs`)
-  are exempt, and so is `packages/ardiacore/ios/page_script.js`: it is injected as one closure into every frame, and its
-  helpers share builtins captured before page code runs, so splitting it would need a bundling step. So is
+  `packages/demo/src/shims/web/symbols/data.ts`, `apps/browser/src/lib/emojiData.ts` from `apps/browser/scripts/emoji-data.mjs`)
+  are exempt, and so is `packages/ardiacore/ios/page_script.js`: it is
+  injected as one closure into every frame, and its helpers share builtins captured before page code runs, so
+  splitting it would need a bundling step. So is
   `packages/core/src/suggest.reference.ts`, the frozen spec the suggestion code was tuned against
   (`suggest.property.test.ts` holds the live code to it, `SUGGEST_BEFORE=1` benches it): it stays as written.
 - One type per native file, named after it.
