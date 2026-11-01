@@ -14,8 +14,8 @@ export function springAt(
   return 1 - Math.exp(-damping * omega * t) * (Math.cos(wd * t) + ((damping * omega) / wd) * Math.sin(wd * t));
 }
 
-export const PEEK_ORIGIN: readonly [number, number] = [5, 5];
-export const PEEK_BOTTOM = 5;
+export const PEEK_ORIGIN: readonly [number, number] = [5, layout.cardInset];
+export const PEEK_BOTTOM = layout.cardInset;
 
 export const dockedCardLeft = (sidebarWidth: number) => sidebarWidth + layout.sidebarCardGap;
 
