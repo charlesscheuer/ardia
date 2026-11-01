@@ -6,7 +6,7 @@ import { PROFILE_COLORS } from "../ui/theme";
 import { useWindowProfileValue } from "../../state/profiles/hooks";
 import type { Settings } from "../../state/settings/settings";
 import { ChoiceList, type ChoiceOption } from "./ChoiceList";
-import { ThemeColorPicker } from "./Personalize";
+import { ThemePicker } from "../settings/ThemeEditor";
 import { MockPanel, useScreen } from "./Screen";
 import { previewColor, previewLive, previewTheme, setOnboardingExtras, useOnboarding } from "../../state/onboarding/onboarding";
 import { keysOf } from "../../state/onboarding/questions";
@@ -170,7 +170,7 @@ export function LookStep() {
   const name = customTheme ? "Custom" : color ? PROFILE_COLORS[color]?.name : null;
   return (
     <Page id="color" title="Pick a color" subtitle="It tints the sidebar and the window." patch={{}} picked={name ? [`${name} theme`] : []} preview={preview}>
-      <ThemeColorPicker windowId={windowId} size={32} gap="xs" onPick={(c) => previewColor(c)} onTheme={previewTheme} />
+      <ThemePicker windowId={windowId} size={32} gap={space.xs} onPreset={previewColor} onTheme={previewTheme} />
     </Page>
   );
 }
