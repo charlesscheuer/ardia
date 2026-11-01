@@ -104,7 +104,7 @@ export function TopStripPeek({ windowWidth, enabled }: { windowWidth: number; en
   const theme = useTheme();
   const windowId = useWindowId();
   const downloadsOpen = useWindowUiOf(windowId, (u) => !!u?.downloadsOpen);
-  const { slide, live, show, hide, recheck } = usePeek(enabled, false, () => downloadsOpenIn(windowId));
+  const { slide, live, show, hide, recheck, cancelPending } = usePeek(enabled, false, () => downloadsOpenIn(windowId));
   useEffect(() => {
     if (!downloadsOpen) recheck();
   }, [downloadsOpen]);
@@ -115,6 +115,7 @@ export function TopStripPeek({ windowWidth, enabled }: { windowWidth: number; en
   }, [enabled, windowId]);
   const leaveStrip = (e: { nativeEvent: { clientY: number } }) => {
     if (live && e.nativeEvent.clientY < PEEK_HOVER_HEIGHT) hide();
+    else cancelPending();
   };
   const leavePanel = (e: { nativeEvent: { clientX: number; clientY: number } }) => {
     const x = e.nativeEvent.clientX + PEEK_LEFT;
