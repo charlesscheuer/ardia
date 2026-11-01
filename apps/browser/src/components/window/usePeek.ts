@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, AppState } from "react-native";
-import { ARC_PEEK_OUT_MS, ARC_PEEK_SPRING, easeInOutCubic } from "./dockMotion";
-import { spring, curve } from "../ui/motion";
+import { easeInOutCubic } from "./dockMotion";
+import { curve, duration, spring } from "../ui/motion";
+import { ARC_PEEK_OUT_MS, ARC_PEEK_SPRING } from "./tokens";
 import { backgroundInstance } from "../../state/app/appSettings";
 
-const SLIDE_MS = 180;
+const SLIDE_MS = duration.base;
 const HIDE_DELAY_MS = 120;
 const ARC_IN = spring(ARC_PEEK_SPRING);
 const appInFront = () => backgroundInstance || AppState.currentState === "active";
@@ -21,7 +22,7 @@ export function usePeek(enabled: boolean, arc = false, held: () => boolean = () 
       ? to > 0
         ? Animated.spring(slide, { toValue: to, ...ARC_IN, restDisplacementThreshold: 0.001, restSpeedThreshold: 0.01, useNativeDriver: true })
         : Animated.timing(slide, { toValue: to, duration: ARC_PEEK_OUT_MS, easing: easeInOutCubic, useNativeDriver: true })
-      : Animated.timing(slide, { toValue: to, duration: SLIDE_MS, easing: curve.outCubic, useNativeDriver: true })
+      : Animated.timing(slide, { toValue: to, duration: SLIDE_MS, easing: curve.enter, useNativeDriver: true })
     ).start(({ finished }) => finished && done?.());
   const slideOut = () => {
     out.current = false;

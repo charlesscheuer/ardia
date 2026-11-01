@@ -28,7 +28,7 @@ export function useAccent() {
 }
 
 const MOCK_SIZE = { width: 420, height: 300 } as const;
-const MOCK_OVERLAY_FADE = { duration: onboardingMotion.mockOverlay, easing: curve.outCubic };
+const MOCK_OVERLAY_FADE = { duration: onboardingMotion.mockOverlay, easing: curve.enter };
 const MOCK_OVERLAY_PRESENCE = { show: MOCK_OVERLAY_FADE, hide: MOCK_OVERLAY_FADE };
 
 export function MockPanel({ settings, focus, overlay, switcher }: { settings: Partial<Settings>; focus: PreviewId | null; overlay?: ReactNode; switcher?: boolean }) {

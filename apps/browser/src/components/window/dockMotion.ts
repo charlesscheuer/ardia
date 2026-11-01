@@ -1,10 +1,5 @@
 import { layout } from "../ui/theme";
-
-export const DOCK_SPRING = { response: 0.215, damping: 0.79 } as const;
-
-export const ARC_PEEK_SPRING = { response: 0.185, damping: 0.77 } as const;
-export const ARC_PEEK_OUT_MS = 150;
-export const ARC_HIDE_MS = 100;
+import { DOCK_SPRING } from "./tokens";
 
 export const easeOutCubic = (u: number) => 1 - (1 - u) ** 3;
 export const easeInOutCubic = (u: number) => (u < 0.5 ? 4 * u ** 3 : 1 - (-2 * u + 2) ** 3 / 2);
@@ -21,7 +16,6 @@ export function springAt(
 
 export const PEEK_ORIGIN: readonly [number, number] = [5, 5];
 export const PEEK_BOTTOM = 5;
-export const PEEK_RADIUS = 12;
 
 export const dockedCardLeft = (sidebarWidth: number) => sidebarWidth + layout.sidebarCardGap;
 

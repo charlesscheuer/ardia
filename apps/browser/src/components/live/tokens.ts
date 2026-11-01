@@ -1,5 +1,6 @@
 import { useTheme } from "../ui/theme";
-import { colorRoles, ink, weight, type ShadowLevel } from "../ui/tokens";
+import { duration, period, springs } from "../ui/motion";
+import { colorRoles, font, ink, proseLineHeight, weight } from "../ui/tokens";
 
 const DARK = {
   success: colorRoles.dark.success,
@@ -37,33 +38,25 @@ export function useLiveColors(): LiveColors {
 
 export const LIVE_NOW_TEXT = ink.white;
 
-const panelShadowShare = (share: number) => ({ dark: colorRoles.dark.panelShadowOpacity * share, light: colorRoles.light.panelShadowOpacity * share });
-
-export const liveShadow = {
-  hoverCard: { color: ink.black, opacity: panelShadowShare(0.8), radius: 16, offset: [0, 6] },
-  alert: { color: ink.black, opacity: panelShadowShare(1), radius: 20, offset: [0, 8] },
-} satisfies Record<string, ShadowLevel>;
-
 export const liveMotion = {
-  badgeSpring: { speed: 16, bounciness: 10 },
-  alertSpring: { speed: 14, bounciness: 6 },
-  ciPulse: 700,
+  badgeSpring: springs.bouncy,
+  badgeHideSpring: springs.snappy,
+  alertSpring: springs.bouncy,
+  ciPulse: period.pulse,
   wiggle: [
-    { to: 1, duration: 70 },
-    { to: -1, duration: 110 },
-    { to: 0.8, duration: 110 },
-    { to: -0.6, duration: 110 },
-    { to: 0.3, duration: 100 },
-    { to: 0, duration: 90 },
+    { to: 1, duration: duration.fast },
+    { to: -1, duration: duration.fast },
+    { to: 0.8, duration: duration.fast },
+    { to: -0.6, duration: duration.fast },
+    { to: 0.3, duration: duration.fast },
+    { to: 0, duration: duration.fast },
   ],
 };
 
 export const liveType = {
-  heading: { fontSize: 13.5, lineHeight: 18, fontWeight: weight.semibold },
-  detail: { fontSize: 12.5, lineHeight: 17 },
-  empty: { fontSize: 12.5 },
-  chip: { fontSize: 10.5, fontWeight: weight.medium },
-  more: { fontSize: 10.5 },
-  badge: { fontSize: 9, fontWeight: weight.bold, fontVariant: ["tabular-nums"] as "tabular-nums"[] },
+  heading: { ...font.body, lineHeight: proseLineHeight.body, fontWeight: weight.semibold },
+  detail: { ...font.small, lineHeight: proseLineHeight.small },
+  empty: font.small,
+  more: font.tiny,
   avatarScale: 0.42,
 };

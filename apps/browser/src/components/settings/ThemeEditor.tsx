@@ -1,6 +1,6 @@
 import { holdThemedWindowsKeyLook, choosePresetColor, setProfileTheme } from "../../state/profiles/themeActions";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 import {
   DEFAULT_THEME_ANGLE,
   flatColors,
@@ -18,10 +18,10 @@ import {
   type ShownLook,
 } from "../../lib/profileLook";
 import { THEME_TEXTURES } from "@ardia/core";
-import { PROFILE_COLORS, useTheme } from "../ui/theme";
+import { PROFILE_COLORS } from "../ui/theme";
 import { useAppDark, useProfile, useSettings } from "../../state/browser/hooks";
 import type { ProfileColor, ProfileTheme, ThemeMode, ThemeTexture } from "../../state/browser/types";
-import { Button, font, Group, PopUp, Swatch, swatch, Symbol, ThemeSwatch } from "../ui";
+import { Box, Button, Group, PopUp, Segmented, space, Swatch, swatch, Text, ThemeSwatch } from "../ui";
 import { importArcTheme } from "../../state/profiles/arcThemes";
 import { Row, SectionHeader } from "./Form";
 import { ColorPad, DirectionDial, LABEL, Labelled, LightnessBar, Preview, Slider } from "./ThemeControls";
@@ -139,22 +139,19 @@ export function CustomSwatch({ theme }: { theme: ProfileTheme | null }) {
 }
 
 function ThemeStops({ theme, onChange }: { theme: ProfileTheme; onChange: (next: ProfileTheme, settle?: boolean) => void }) {
-  const ui = useTheme();
   const [selected, setSelected] = useState(0);
   const index = Math.min(selected, theme.stops.length - 1);
   return (
-    <View style={{ gap: 8 }}>
+    <Box gap="m">
       <ColorPad theme={theme} selected={index} onSelect={setSelected} onChange={onChange} />
       <LightnessBar theme={theme} index={index} onChange={onChange} />
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <Text style={{ ...font.footnote, color: ui.textSecondary }}>
+        <Text size="caption" tone="textSecondary">
           {theme.stops.length} of {MAX_THEME_STOPS} colours
         </Text>
-        <View style={{ flexDirection: "row", gap: 4 }}>
+        <Box row gap="xs">
           <Button
             variant="stepper"
-            width={24}
-            height={20}
             icon="minus"
             tooltip="Remove Colour"
             disabled={theme.stops.length <= 1}
@@ -165,8 +162,6 @@ function ThemeStops({ theme, onChange }: { theme: ProfileTheme; onChange: (next:
           />
           <Button
             variant="stepper"
-            width={24}
-            height={20}
             icon="plus"
             tooltip="Add Colour"
             disabled={theme.stops.length >= MAX_THEME_STOPS}
@@ -175,23 +170,32 @@ function ThemeStops({ theme, onChange }: { theme: ProfileTheme; onChange: (next:
               setSelected(theme.stops.length);
             }}
           />
-        </View>
+        </Box>
       </View>
-    </View>
+    </Box>
   );
 }
 
 export function CompactThemeEditor({ theme, onChange }: { theme: ProfileTheme; onChange: (next: ProfileTheme, settle?: boolean) => void }) {
   return (
-    <View style={{ flexDirection: "row", gap: 18 }}>
+    <Box row gap="xl">
       <ThemeStops theme={theme} onChange={onChange} />
-      <View style={{ flex: 1, gap: 14 }}>
+      <Box gap="xl" style={FILL}>
         <Slider stacked label="Intensity" value={theme.intensity} onChange={(v, settle) => onChange({ ...theme, intensity: v }, settle)} />
+        <Slider stacked label="Pass-through blur" value={theme.translucency} onChange={(v, settle) => onChange({ ...theme, translucency: v }, settle)} />
+        <Slider stacked label="Noise" value={theme.grain} onChange={(v, settle) => onChange({ ...theme, grain: v }, settle)}>
+          <PopUp
+            value={theme.texture}
+            minWidth={78}
+            options={THEME_TEXTURES.map((t) => ({ value: t, title: TEXTURE_NAMES[t] }))}
+            onChange={(texture) => onChange({ ...theme, texture, grain: theme.grain || 0.5 }, true)}
+          />
+        </Slider>
         <Labelled label="Direction">
           <DirectionDial angle={lookAngle(theme)} onChange={(angle, settle) => onChange(withAngle(theme, angle), settle)} />
         </Labelled>
-      </View>
-    </View>
+      </Box>
+    </Box>
   );
 }
 
@@ -206,11 +210,10 @@ function ThemeEditor({
   followsApp: boolean;
   onChange: (next: ProfileTheme, settle?: boolean) => void;
 }) {
-  const ui = useTheme();
   return (
-    <View style={{ padding: 12, flexDirection: "row", gap: 18 }}>
+    <Box row pad="l" gap="xl">
       <ThemeStops theme={theme} onChange={onChange} />
-      <View style={{ flex: 1, gap: 11 }}>
+      <Box gap="l" style={FILL}>
         <Preview shown={shown} />
         <Slider label="Intensity" value={theme.intensity} onChange={(v, settle) => onChange({ ...theme, intensity: v }, settle)} />
         <Slider
@@ -226,43 +229,36 @@ function ThemeEditor({
             onChange={(texture) => onChange({ ...theme, texture, grain: theme.grain || 0.5 }, true)}
           />
         </Slider>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Text style={{ width: LABEL + 10, ...font.small, color: ui.textPrimary }}>Direction</Text>
+        <View style={LABELLED_ROW}>
+          <Text size="small" style={EDITOR_LABEL}>
+            Direction
+          </Text>
           <DirectionDial angle={lookAngle(theme)} onChange={(angle, settle) => onChange(withAngle(theme, angle), settle)} />
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Text style={{ width: LABEL + 10, ...font.small, color: ui.textPrimary }}>Appearance</Text>
+        <View style={LABELLED_ROW}>
+          <Text size="small" style={EDITOR_LABEL}>
+            Appearance
+          </Text>
           {followsApp ? (
-            <Text numberOfLines={2} style={{ flex: 1, ...font.caption, color: ui.textSecondary }}>
+            <Text size="caption" tone="textSecondary" lines={2} style={FILL}>
               Follows Settings › Appearance
             </Text>
           ) : (
-            <View style={{ flexDirection: "row", borderRadius: 6, backgroundColor: ui.control, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: ui.controlBorder, padding: 1 }}>
-              {MODES.map((m) => (
-                <Pressable key={m.value} tooltip={m.title} onPress={() => onChange({ ...theme, mode: m.value }, true)}>
-                  <View
-                    style={{
-                      width: 30,
-                      height: 20,
-                      borderRadius: 5,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: theme.mode === m.value ? ui.formAccent : undefined,
-                    }}
-                  >
-                    <Symbol name={m.symbol} size={11} color={theme.mode === m.value ? ui.onAccent : ui.icon} style={{ width: 14, height: 14 }} />
-                  </View>
-                </Pressable>
-              ))}
-            </View>
+            <Segmented options={MODE_OPTIONS} value={theme.mode} onChange={(mode) => onChange({ ...theme, mode }, true)} />
           )}
           {shown.dark !== shown.requestedDark ? (
-            <Text numberOfLines={2} style={{ flex: 1, marginLeft: 8, ...font.caption, color: ui.textSecondary }}>
+            <Text size="caption" tone="textSecondary" lines={2} style={KEPT_NOTE}>
               Kept {shown.dark ? "dark" : "light"} so text stays readable
             </Text>
           ) : null}
         </View>
-      </View>
-    </View>
+      </Box>
+    </Box>
   );
 }
+
+const FILL = { flex: 1 } as const;
+const LABELLED_ROW = { flexDirection: "row", alignItems: "center" } as const;
+const EDITOR_LABEL = { width: LABEL + space.ml } as const;
+const KEPT_NOTE = { flex: 1, marginLeft: space.m } as const;
+const MODE_OPTIONS = MODES.map((m) => ({ value: m.value, title: m.title, image: m.symbol }));

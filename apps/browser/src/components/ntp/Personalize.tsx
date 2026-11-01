@@ -2,15 +2,14 @@ import { devRegister } from "../dev/devRegister";
 import { useEffect, useRef } from "react";
 import { Animated, Pressable, StyleSheet, View } from "react-native";
 import { PERSONALIZE_COPY, TabLayoutPicker, ThemeColorPicker } from "../onboarding/Personalize";
-import { Box, Panel, shadow, space, Symbol, Text, useHover, useTheme } from "../ui";
-import { ntpType, PERSONALIZE_PANEL } from "./tokens";
+import { Box, capsule, Panel, proseLineHeight, shadow, space, Symbol, Text, useHover, useTheme } from "../ui";
+import { PERSONALIZE_PANEL } from "./tokens";
 import { closePersonalizePanelOf, setPersonalizePanel as setOpen, usePersonalizePanel } from "../../state/pages/personalizePanel";
 
-const INSET = 16;
+const INSET = space.xl;
 const BUTTON = 30;
 const GLYPH_DROP = 1.5;
 const PANEL_WIDTH = 352;
-const SUBTITLE_LINE = 17;
 
 export function PersonalizeButton({ windowId }: { windowId: string }) {
   const theme = useTheme();
@@ -27,7 +26,7 @@ export function PersonalizeButton({ windowId }: { windowId: string }) {
               style={{
                 width: BUTTON,
                 height: BUTTON,
-                borderRadius: BUTTON / 2,
+                borderRadius: capsule(BUTTON),
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: pressed ? theme.toolbarPressed : hovered || open ? theme.toolbarHover : undefined,
@@ -43,7 +42,6 @@ export function PersonalizeButton({ windowId }: { windowId: string }) {
 }
 
 function PersonalizePanel({ windowId, onClose }: { windowId: string; onClose: () => void }) {
-  const theme = useTheme();
   const t = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.spring(t, { toValue: 1, ...PERSONALIZE_PANEL.spring, useNativeDriver: true }).start();
@@ -61,10 +59,12 @@ function PersonalizePanel({ windowId, onClose }: { windowId: string; onClose: ()
           transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }, { scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] }) }],
         }}
       >
-        <Panel fill={theme.panel} radius={PERSONALIZE_PANEL.radius} border={theme.panelBorder} shadow={shadow.dialog}>
-          <Box pad="xlx" gap="xl">
+        <Panel radius={PERSONALIZE_PANEL.radius} shadow={shadow.dialog}>
+          <Box pad="xl" gap="xl">
             <Box gap="xs">
-              <Text style={ntpType.personalizeTitle}>{PERSONALIZE_COPY.title}</Text>
+              <Text size="title" weight="semibold">
+                {PERSONALIZE_COPY.title}
+              </Text>
               <Text size="small" tone="textSecondary" style={SUBTITLE}>
                 {PERSONALIZE_COPY.subtitle}
               </Text>
@@ -83,6 +83,6 @@ function PersonalizePanel({ windowId, onClose }: { windowId: string; onClose: ()
   );
 }
 
-const SUBTITLE = { lineHeight: SUBTITLE_LINE } as const;
+const SUBTITLE = { lineHeight: proseLineHeight.small } as const;
 
 devRegister("acPersonalize", "open", setOpen);

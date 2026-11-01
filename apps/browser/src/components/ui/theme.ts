@@ -5,7 +5,7 @@ import { backdropTint, opaqueTint, tintForHue, type BackdropTint } from "../../l
 import { isRgbFunction, mix, parseColor, rgbToHsl, toHex } from "../../lib/color";
 import { CARD_INSET, DEFAULT_SIDEBAR_WIDTH } from "../../lib/windowLayout";
 import { SIDEBAR_ROW } from "../../lib/sidebarMetrics";
-import { colorRoles, ink, INCOGNITO_TINT, PROFILE_COLORS, type ColorRoles, type ProfileColorSpec } from "./tokens";
+import { colorRoles, ink, INCOGNITO_TINT, PROFILE_COLORS, radius, type ColorRoles, type ProfileColorSpec } from "./tokens";
 
 export { PROFILE_COLORS } from "./tokens";
 
@@ -127,16 +127,16 @@ export function useTheme(): Theme {
 }
 
 const SELECTED_TAB_GLOW = {
-  full: { opacity: 1, radius: 1 },
-  soft: { opacity: 0.45, radius: 0.6 },
-  off: { opacity: 0, radius: 1 },
+  full: { opacity: 1, spread: 1 },
+  soft: { opacity: 0.45, spread: 0.6 },
+  off: { opacity: 0, spread: 1 },
 };
 
 export type SelectedTabGlowLevel = keyof typeof SELECTED_TAB_GLOW;
 
 export function selectedTabGlow(theme: Theme, setting: SelectedTabGlowLevel) {
   const level = SELECTED_TAB_GLOW[setting] ?? SELECTED_TAB_GLOW.full;
-  return { shadowColor: hex(theme.tabSelectedShadow), shadowOpacity: level.opacity, shadowRadius: theme.tabSelectedShadowRadius * level.radius };
+  return { shadowColor: hex(theme.tabSelectedShadow), shadowOpacity: level.opacity, shadowRadius: theme.tabSelectedShadowRadius * level.spread };
 }
 
 const SIDEBAR_INSET = 6;
@@ -151,7 +151,7 @@ export const layout = {
   rowGap: SIDEBAR_ROW.gap,
   cardInset: CARD_INSET,
   sidebarCardGap: CARD_INSET - SIDEBAR_INSET,
-  cardRadius: 10,
+  cardRadius: radius.chrome,
   toolbarButton: 30,
   toolbarIconCenters: [21, 56, 92, 127],
   breadcrumbX: 153,

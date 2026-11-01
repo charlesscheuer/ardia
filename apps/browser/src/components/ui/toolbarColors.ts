@@ -72,7 +72,7 @@ export function siteScopedTheme(theme: Theme, palette: ToolbarPalette): Theme {
   return scoped;
 }
 
-export function useEasedColor(color: string | null, duration: number = durations.colorEase) {
+export function useEasedColor(color: string | null, duration: number = durations.base) {
   const progress = useRef(new Animated.Value(1)).current;
   const from = useRef<string>(color ?? ink.clear);
   const to = useRef<string>(color ?? ink.clear);
@@ -84,7 +84,7 @@ export function useEasedColor(color: string | null, duration: number = durations
   useEffect(() => {
     if (from.current === to.current) return;
     progress.setValue(0);
-    Animated.timing(progress, { toValue: 1, duration, easing: curve.outQuad, useNativeDriver: false }).start();
+    Animated.timing(progress, { toValue: 1, duration, easing: curve.enter, useNativeDriver: false }).start();
   }, [target]);
   return progress.interpolate({ inputRange: [0, 1], outputRange: [from.current, to.current] });
 }

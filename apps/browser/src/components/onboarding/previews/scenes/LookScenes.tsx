@@ -7,6 +7,7 @@ import { Glyph, Label, Toolbar } from "../Kit";
 import { Page } from "../MockPages";
 import { Pill } from "../Floating";
 import { mockInk, sceneMs } from "../tokens";
+import { font } from "../../../ui/tokens";
 import type { Scene } from "../scene";
 import { Std } from "./SceneParts";
 
@@ -26,11 +27,11 @@ export function appearance(mode: "light" | "dark" | "auto"): Scene {
         <Animated.View style={[fill, { opacity: t.in(200, 420) }]}>
           <Std g={g} look={to} opts={opts} />
         </Animated.View>
-        <Pill g={g} look={to} style={{ left: 16 * g.s, bottom: 16 * g.s, opacity: t.in(420, 220), transform: [{ translateY: t([[420, 6 * g.s], [700, 0]]) }] }}>
+        <Pill g={g} look={to} style={{ opacity: t.in(420, 220), transform: [{ translateY: t([[420, 6 * g.s], [700, 0]]) }] }}>
           <Animated.View style={{ transform: [{ rotate: t.deg([[460, -90], [900, 0]]) }] }}>
             <Glyph g={g} name={icon} size={14} color={toDark ? mockInk.moon : mockInk.sun} weight="medium" box={18} />
           </Animated.View>
-          <Label g={g} size={13} color={to.t.textPrimary} weight="500">
+          <Label g={g} size={font.body.fontSize} color={to.t.textPrimary} weight="500">
             {label}
           </Label>
         </Pill>

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 globalThis.__DEV__ = false;
-const dm = { ...(await import("./dockMotion.ts")), ...(await import("../../state/windows/dockMotion.ts")) };
+const dm = { ...(await import("./dockMotion.ts")), ...(await import("./tokens.ts")), ...(await import("../../state/windows/dockMotion.ts")) };
 const motion = await import("../ui/motion.ts");
 const { toolbarGeometry } = await import("./geometry.ts");
 const { useBrowser } = await import("../../state/browser/store.ts");
