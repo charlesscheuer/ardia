@@ -3,7 +3,8 @@ import { Pressable, View, type ViewStyle } from "react-native";
 import { useShortcutHint, withShortcut } from "../../state/commands/commandShortcuts";
 import { layout, useTheme } from "../ui/theme";
 import { useActiveTabId, useSettings, useTabLive, useWindowId } from "../../state/browser/hooks";
-import { openPanel, toggleSidebar } from "../../state/windows/actions";
+import { toggleSidebar } from "../../state/windows/actions";
+import { openEmptySidebarField } from "../../state/omnibox/barState";
 import { isAddressBarInSidebar } from "../../state/sidebar/current";
 import { usePageProgress } from "../../state/tabs/pageProgress";
 import { extensionsFitting, ToolbarExtensions, useToolbarExtensionsWidth } from "../extensions/ToolbarExtensions";
@@ -149,7 +150,7 @@ function PageField({ tab, windowId, width }: { tab: NonNullable<ReturnType<typeo
 function EmptyField({ windowId }: { windowId: string }) {
   const theme = useTheme();
   const { hovered, hoverProps } = useHover();
-  const open = () => openPanel(windowId, "");
+  const open = () => openEmptySidebarField(windowId);
   return (
     <View {...hoverProps}>
       <Pressable onPress={open}>
