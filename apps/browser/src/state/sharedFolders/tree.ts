@@ -22,7 +22,23 @@ export type TargetLevel = { entries: TargetEntry[]; dropped: Dropped[]; remote: 
 export const LINK_EXTENSION = ".webloc";
 export const MANIFEST = ".ardia-folder.json";
 const MANIFEST_VERSION = 1;
-const MAX_NAME = 200;
+const MAX_NAME_BYTES = 200;
+
+const utf8Bytes = (c: string) => {
+  const code = c.codePointAt(0)!;
+  return code < 0x80 ? 1 : code < 0x800 ? 2 : code < 0x10000 ? 3 : 4;
+};
+
+function capBytes(text: string, limit: number): string {
+  let used = 0;
+  let out = "";
+  for (const c of text) {
+    used += utf8Bytes(c);
+    if (used > limit) break;
+    out += c;
+  }
+  return out;
+}
 
 export const EMPTY_REMOTE: RemoteLevel = { entries: [], manifest: null, manifestPending: false };
 
@@ -37,7 +53,7 @@ export function cleanName(name: string, fallback: string): string {
     .trim()
     .replace(/^\.+/, "")
     .trim();
-  return [...(cleaned || fallback)].slice(0, MAX_NAME).join("");
+  return capBytes(cleaned || fallback, MAX_NAME_BYTES).trim() || fallback;
 }
 
 export const fileNameFor = (name: string, kind: "link" | "dir") => (kind === "link" ? `${cleanName(name, "Link")}${LINK_EXTENSION}` : cleanName(name, "Folder"));
@@ -52,6 +68,15 @@ export function uniqueFileName(name: string, kind: "link" | "dir", taken: Set<st
 }
 
 export const manifestText = (order: string[]) => `${JSON.stringify({ version: MANIFEST_VERSION, order })}\n`;
+
+export function manifestIsNewer(text: string | null): boolean {
+  try {
+    const version = (JSON.parse(text ?? "null") as { version?: unknown } | null)?.version;
+    return typeof version === "number" && version > MANIFEST_VERSION;
+  } catch {
+    return false;
+  }
+}
 
 export function parseManifest(text: string | null): string[] | null {
   if (!text) return null;

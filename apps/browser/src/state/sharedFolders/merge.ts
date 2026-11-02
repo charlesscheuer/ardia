@@ -26,6 +26,9 @@ export function mergeFolder(base: BaseEntry[], local: LocalEntry[], remote: Remo
   return { level, waiting: ctx.waiting };
 }
 
+const holdsArrival = (level: RemoteLevel, ctx: Context): boolean =>
+  level.entries.some((r) => (r.kind === "link" ? ctx.arriving.has(r) : r.kind === "dir" && holdsArrival(r.level, ctx)));
+
 const sameThing = (b: BaseEntry, r: RemoteEntry) =>
   b.kind === "link" ? r.kind === "link" && r.url === b.url : r.kind === "dir" && b.children.some((c) => r.level.entries.some((x) => x.file === c.file));
 
@@ -37,22 +40,27 @@ function mergeLevel(base: BaseEntry[], local: LocalEntry[], remote: RemoteLevel,
   const staying = base.filter((b) => b.kind !== "link" || !ctx.moved.has(b));
   const arrivals = remote.entries.filter((r): r is RemoteLink => r.kind === "link" && ctx.arriving.has(r));
   const open = remote.entries.filter((r) => !(r.kind === "link" && ctx.arriving.has(r)));
-  const foreign = (b: BaseEntry, r: RemoteEntry) => r.kind === "link" && !!r.id && ctx.baseIds.has(r.id) && !(b.kind === "link" && b.id === r.id);
+  const owned = (r: RemoteEntry): r is RemoteLink => r.kind === "link" && !!r.id && ctx.ownerOf.get(r.id) === r;
+  const foreign = (b: BaseEntry, r: RemoteEntry) => owned(r) && ctx.baseOwner.has(r.id!) && ctx.baseOwner.get(r.id!) !== b;
   const used = new Set<RemoteEntry>();
   const claimed = new Map<BaseEntry, RemoteEntry>();
   const take = (b: BaseEntry, r: RemoteEntry | undefined) => r && !used.has(r) && (used.add(r), claimed.set(b, r));
   for (const b of staying) {
-    if (b.kind !== "link" || !b.id) continue;
-    take(b, preferred(b, open.filter((r): r is RemoteLink => r.kind === "link" && r.id === b.id && !used.has(r))));
+    if (b.kind === "dir") take(b, ctx.dirs.get(b));
+    else if (b.id && ctx.baseOwner.get(b.id) === b) take(b, open.find((r) => r === ctx.ownerOf.get(b.id!)));
   }
-  for (const b of staying) if (!claimed.has(b)) take(b, open.find((r) => r.file === b.file && !foreign(b, r)));
-  for (const b of staying) if (!claimed.has(b)) take(b, open.find((x) => !used.has(x) && !foreign(b, x) && sameThing(b, x)));
+  for (const b of staying) if (b.kind === "link" && !claimed.has(b)) take(b, open.find((r) => r.kind !== "dir" && r.file === b.file && !foreign(b, r)));
+  for (const b of staying) if (b.kind === "link" && !claimed.has(b)) take(b, open.find((x) => !used.has(x) && !foreign(b, x) && sameThing(b, x)));
   const fresh = open.filter((r) => !used.has(r));
 
   const entries: TargetEntry[] = [];
   const dropped: Dropped[] = [];
   const keep = (b: BaseEntry, here: LocalEntry | undefined, found: RemoteEntry | undefined) => {
     const r = found && (found.kind === b.kind || (found.kind === "held" && b.kind === "link")) ? found : undefined;
+    if (!here && b.kind === "dir" && r?.kind === "dir" && holdsArrival(r.level, ctx)) {
+      entries.push({ kind: "dir", key: null, file: r.file, name: nameOfFile(r.file, "dir"), renamed: false, level: mergeLevel(b.children, [], r.level, ctx) });
+      return;
+    }
     if (!here || here.kind !== b.kind || !r) {
       if (!here && r) dropped.push(r.kind === "dir" ? { kind: "dir", file: r.file, known: (b as BaseDir).children } : { kind: "link", file: r.file, url: r.kind === "link" ? r.url : (b as BaseLink).url });
       return;
@@ -64,7 +72,9 @@ function mergeLevel(base: BaseEntry[], local: LocalEntry[], remote: RemoteLevel,
       const fileId = r.kind === "link" ? r.id : null;
       const localMoved = here.url !== b.url;
       const url = localMoved || remoteUrl === null ? here.url : remoteUrl;
-      entries.push({ kind: "link", key: b.key, file: r.file, name, url, renamed: localRenamed, write: remoteUrl === null ? localMoved : url !== remoteUrl, expect: remoteUrl ?? b.url, id: fileId ?? b.id ?? null, fileId });
+      const ownsFile = owned(r) && (!ctx.baseOwner.has(fileId!) || ctx.baseOwner.get(fileId!) === b);
+      const id = ownsFile ? fileId : b.id && ctx.baseOwner.get(b.id) === b ? b.id : null;
+      entries.push({ kind: "link", key: b.key, file: r.file, name, url, renamed: localRenamed, write: remoteUrl === null ? localMoved : url !== remoteUrl, expect: remoteUrl ?? b.url, id, fileId });
     } else if (here.kind === "dir" && b.kind === "dir" && r.kind === "dir") {
       entries.push({ kind: "dir", key: b.key, file: r.file, name, renamed: localRenamed, level: mergeLevel(b.children, here.children, r.level, ctx) });
     }
@@ -81,20 +91,19 @@ function mergeLevel(base: BaseEntry[], local: LocalEntry[], remote: RemoteLevel,
     if (twin) used.add(twin);
     if (l.kind === "link") {
       const fileId = twin?.kind === "link" ? twin.id : null;
-      entries.push({ kind: "link", key: l.key, file: twin?.file ?? null, name: l.name, url: l.url, renamed: true, write: !twin, expect: twin?.kind === "link" ? twin.url : null, id: fileId && !ctx.baseIds.has(fileId) ? fileId : null, fileId });
+      const id = twin && owned(twin) && !ctx.baseOwner.has(fileId!) ? fileId : null;
+      entries.push({ kind: "link", key: l.key, file: twin?.file ?? null, name: l.name, url: l.url, renamed: true, write: !twin, expect: twin?.kind === "link" ? twin.url : null, id, fileId });
     } else {
       const level = twin?.kind === "dir" ? twin.level : EMPTY_REMOTE;
       entries.push({ kind: "dir", key: l.key, file: twin?.file ?? null, name: l.name, renamed: true, level: mergeLevel([], (l as LocalDir).children, level, ctx) });
     }
   }
 
-  const seenIds = new Set<string>();
   for (const r of fresh) {
     if (used.has(r)) continue;
     if (r.kind === "held") ctx.waiting += r.waiting ? 1 : 0;
     else if (r.kind === "link") {
-      const own = !!r.id && !ctx.baseIds.has(r.id) && !seenIds.has(r.id);
-      if (r.id) seenIds.add(r.id);
+      const own = owned(r) && !ctx.baseOwner.has(r.id!);
       entries.push({ kind: "link", key: null, file: r.file, name: nameOfFile(r.file, "link"), url: r.url, renamed: false, write: false, expect: r.url, id: own ? r.id : null, fileId: r.id });
     } else entries.push({ kind: "dir", key: null, file: r.file, name: r.file, renamed: false, level: mergeLevel([], [], r.level, ctx) });
   }

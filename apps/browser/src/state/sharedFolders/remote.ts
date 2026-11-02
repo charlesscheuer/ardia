@@ -1,6 +1,6 @@
 import type { SharedListingLevel } from "../../platform/sharedFolders";
 import { parseWebloc, weblocLinkId } from "../../lib/webloc";
-import { parseManifest, type RemoteEntry, type RemoteLevel } from "./tree";
+import { manifestIsNewer, parseManifest, type RemoteEntry, type RemoteLevel } from "./tree";
 
 export const isShareableUrl = (url: string) => /^https?:\/\/./i.test(url);
 
@@ -14,6 +14,6 @@ export function remoteLevel(level: SharedListingLevel): RemoteLevel {
       return url && isShareableUrl(url) ? { kind: "link", file: e.file, url, id: weblocLinkId(e.text) } : { kind: "held", file: e.file, waiting: false };
     }),
     manifest: parseManifest(level.manifest),
-    manifestPending: level.manifestPending,
+    manifestPending: level.manifestPending || manifestIsNewer(level.manifest),
   };
 }

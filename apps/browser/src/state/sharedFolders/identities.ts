@@ -1,7 +1,11 @@
-import { nameOfFile, type BaseEntry, type BaseLink, type LocalEntry, type LocalLink, type RemoteEntry, type RemoteLevel, type RemoteLink } from "./tree";
+import { nameOfFile, type BaseDir, type BaseEntry, type BaseLink, type LocalEntry, type LocalLink, type RemoteEntry, type RemoteLevel, type RemoteLink } from "./tree";
+
+type RemoteDir = Extract<RemoteEntry, { kind: "dir" }>;
 
 export type Identities = {
-  baseIds: Set<string>;
+  dirs: Map<BaseDir, RemoteDir>;
+  ownerOf: Map<string, RemoteLink>;
+  baseOwner: Map<string, BaseLink>;
   moved: Map<BaseLink, RemoteLink>;
   arriving: Map<RemoteLink, BaseLink>;
   arrivingKeys: Set<string>;
@@ -20,36 +24,52 @@ function localLinks(local: LocalEntry[], into: Map<string, LocalLink>) {
 export const preferred = (b: BaseLink, candidates: RemoteLink[]): RemoteLink | undefined =>
   candidates.find((r) => r.file === b.file) ?? candidates.find((r) => nameOfFile(r.file, "link") === b.name) ?? candidates[0];
 
-function matchedDir(b: Extract<BaseEntry, { kind: "dir" }>, remote: RemoteLevel): RemoteEntry | undefined {
-  const dirs = remote.entries.filter((r): r is Extract<RemoteEntry, { kind: "dir" }> => r.kind === "dir");
-  return dirs.find((r) => r.file === b.file) ?? dirs.find((r) => b.children.some((c) => r.level.entries.some((x) => x.file === c.file)));
-}
+const shared = (a: Set<string>, z: Set<string>) => [...a].filter((x) => z.has(x)).length;
 
-function staying(base: BaseEntry[], remote: RemoteLevel | null, into: Set<BaseLink>) {
-  const here = new Set(remote ? remote.entries.flatMap((r) => (r.kind === "link" && r.id ? [r.id] : [])) : []);
-  for (const b of base) {
-    if (b.kind === "link") {
-      if (b.id && here.has(b.id)) into.add(b);
-      continue;
+function mapDirs(base: BaseEntry[], remote: RemoteLevel | null, dirs: Map<BaseDir, RemoteDir>, levels: [BaseEntry[], RemoteLevel | null][]) {
+  levels.push([base, remote]);
+  const wanted = base.filter((b): b is BaseDir => b.kind === "dir");
+  const offered = remote ? remote.entries.filter((r): r is RemoteDir => r.kind === "dir") : [];
+  const used = new Set<RemoteDir>();
+  const pair = (b: BaseDir, r: RemoteDir | undefined) => r && (used.add(r), dirs.set(b, r));
+  const baseIdsOf = new Map(wanted.map((b) => [b, new Set(baseLinks(b.children).flatMap((x) => (x.id ? [x.id] : [])))]));
+  const remoteIdsOf = new Map(offered.map((r) => [r, new Set(linksIn(r.level).flatMap((x) => (x.id ? [x.id] : [])))]));
+  for (const b of wanted) {
+    let best: RemoteDir | undefined;
+    let score = 0;
+    for (const r of offered) {
+      const s = used.has(r) ? 0 : shared(baseIdsOf.get(b)!, remoteIdsOf.get(r)!);
+      if (s > score) (best = r), (score = s);
     }
-    const r = remote ? matchedDir(b, remote) : undefined;
-    staying(b.children, r?.kind === "dir" ? r.level : null, into);
+    pair(b, best);
   }
-  return into;
+  for (const b of wanted) if (!dirs.has(b)) pair(b, offered.find((r) => !used.has(r) && r.file === b.file));
+  for (const b of wanted) if (!dirs.has(b)) pair(b, offered.find((r) => !used.has(r) && b.children.some((c) => r.level.entries.some((x) => x.file === c.file))));
+  for (const b of wanted) mapDirs(b.children, dirs.get(b)?.level ?? null, dirs, levels);
 }
 
 export function identities(base: BaseEntry[], local: LocalEntry[], remote: RemoteLevel): Identities {
-  const links = baseLinks(base);
-  const baseIds = new Set(links.flatMap((b) => (b.id ? [b.id] : [])));
-  const stays = staying(base, remote, new Set());
-  const byId = new Map<string, RemoteLink[]>();
-  for (const r of linksIn(remote)) if (r.id) byId.set(r.id, [...(byId.get(r.id) ?? []), r]);
+  const dirs = new Map<BaseDir, RemoteDir>();
+  const levels: [BaseEntry[], RemoteLevel | null][] = [];
+  mapDirs(base, remote, dirs, levels);
+  const ownerOf = new Map<string, RemoteLink>();
+  const baseOwner = new Map<string, BaseLink>();
+  const own = (b: BaseLink, r: RemoteLink | undefined) => r && b.id && (ownerOf.set(b.id, r), baseOwner.set(b.id, b));
+  for (const [entries, level] of levels) {
+    const here = level ? level.entries.filter((r): r is RemoteLink => r.kind === "link") : [];
+    for (const b of entries) if (b.kind === "link" && b.id && !baseOwner.has(b.id)) own(b, preferred(b, here.filter((r) => r.id === b.id)));
+  }
+  const all = linksIn(remote);
   const moved = new Map<BaseLink, RemoteLink>();
   const arriving = new Map<RemoteLink, BaseLink>();
-  for (const b of links) {
-    if (!b.id || stays.has(b)) continue;
-    const r = preferred(b, byId.get(b.id) ?? []);
-    if (r && !arriving.has(r)) (moved.set(b, r), arriving.set(r, b));
+  for (const b of baseLinks(base)) {
+    if (!b.id || baseOwner.has(b.id)) continue;
+    const r = preferred(b, all.filter((x) => x.id === b.id));
+    if (!r) continue;
+    own(b, r);
+    moved.set(b, r);
+    arriving.set(r, b);
   }
-  return { baseIds, moved, arriving, arrivingKeys: new Set([...moved.keys()].map((b) => b.key)), localLinks: localLinks(local, new Map()) };
+  for (const r of all) if (r.id && !ownerOf.has(r.id)) ownerOf.set(r.id, r);
+  return { dirs, ownerOf, baseOwner, moved, arriving, arrivingKeys: new Set([...moved.keys()].map((b) => b.key)), localLinks: localLinks(local, new Map()) };
 }

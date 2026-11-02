@@ -9,7 +9,7 @@ import { GROUP_COLOR_ORDER, GROUP_COLORS, NEUTRAL_GROUP_SWATCH, NO_GROUP_COLOR_S
 import { copyUrls, openIconPicker, startRename } from "./actions";
 import { toggleNewTabBar } from "../omnibox/newTabBar";
 import { hintWhen, profileItems, sections, windowItems, withAlternate, type Destination } from "./menuParts";
-import { confirmRemovingShared } from "../sharedFolders/actions";
+import { confirmRemovingShared } from "../sharedFolders/removal";
 import { runSharedFolderChoice, sharedFolderMenuItems } from "../sharedFolders/menu";
 
 type GroupChoice = Destination | { kind: "color"; color: GroupColor | null };
@@ -66,11 +66,12 @@ export function groupMenuItems(s: BrowserState, windowId: string, groupId: strin
 export async function openGroupMenu(windowId: string, groupId: string) {
   const choice = await chooseFromMenu(groupMenuItems(store(), windowId, groupId));
   if (!choice) return;
-  if (typeof choice === "string" && REMOVES_FOLDER.has(choice) && !(await confirmRemovingShared(windowId, groupId))) return;
+  const removes = typeof choice === "string" ? REMOVES_FOLDER.has(choice) : choice.kind === "profile";
+  if (removes && !(await confirmRemovingShared(windowId, groupId))) return;
   runGroupChoice(windowId, groupId, choice);
 }
 
-const REMOVES_FOLDER = new Set(["pin", "ungroup", "close", "delete", "bookmarkBar"]);
+const REMOVES_FOLDER = new Set(["pin", "ungroup", "delete", "bookmarkBar"]);
 
 function sendGroup(groupId: string, to: GroupChoice) {
   if (to.kind === "color") store().updateGroup(groupId, { color: to.color });

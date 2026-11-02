@@ -146,7 +146,7 @@ final class SharedFolderDirectoryTests: XCTestCase {
     XCTAssertTrue(try String(contentsOf: root.appendingPathComponent("A.webloc"), encoding: .utf8).contains("a.example"))
   }
 
-  func testALinkThatGrowsPastTheCapIsNotReadWhole() throws {
+  func testReadsStopAtTheCapWhateverSizeTheFileReported() throws {
     let root = try folder("root")
     let path = root.appendingPathComponent("Growing.webloc")
     let fifo = root.appendingPathComponent("Pipe.webloc")
@@ -156,8 +156,25 @@ final class SharedFolderDirectoryTests: XCTestCase {
     let kinds = Dictionary(uniqueKeysWithValues: entries(listing).map { ($0["file"] as! String, $0["kind"] as! String) })
     XCTAssertEqual(kinds["Growing.webloc"], "link")
     XCTAssertEqual(kinds["Pipe.webloc"], "pending")
-    XCTAssertEqual(SharedFolderDirectory.boundedRead(path.path, limit: 10)?.count, nil)
+    XCTAssertNil(SharedFolderDirectory.boundedRead(path.path, limit: 10))
     XCTAssertEqual(SharedFolderDirectory.boundedRead(path.path, limit: 4096).map { String(decoding: $0, as: UTF8.self).contains("small") }, true)
+  }
+
+  func testAFolderWithAnUnknownEntryKeepsItsOrderFile() throws {
+    let root = try folder("root")
+    let sub = try folder("root/Sub")
+    try "{\"version\":1,\"order\":[\"Note.txt\"]}".write(to: sub.appendingPathComponent(".ardia-folder.json"), atomically: true, encoding: .utf8)
+    try "keep".write(to: sub.appendingPathComponent("Note.txt"), atomically: true, encoding: .utf8)
+    _ = try SharedFolderDirectory(root: root).apply(json: try ops([["op": "rmdir", "path": "Sub"]]))
+    XCTAssertTrue(fm.fileExists(atPath: sub.appendingPathComponent(".ardia-folder.json").path))
+    try fm.removeItem(at: sub.appendingPathComponent("Note.txt"))
+    _ = try SharedFolderDirectory(root: root).apply(json: try ops([["op": "rmdir", "path": "Sub"]]))
+    XCTAssertFalse(fm.fileExists(atPath: sub.path))
+  }
+
+  func testFolderNamesAreCappedByTheirUTF8Bytes() {
+    XCTAssertLessThanOrEqual(SharedFolderDirectory.folderName(String(repeating: "界", count: 150)).utf8.count, 200)
+    XCTAssertEqual(SharedFolderDirectory.folderName("a/b"), "a-b")
   }
 }
 

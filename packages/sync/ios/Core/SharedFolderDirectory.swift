@@ -54,7 +54,12 @@ public struct SharedFolderDirectory {
     let cleaned = name.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-")
       .trimmingCharacters(in: .whitespacesAndNewlines)
     let visible = String(cleaned.drop(while: { $0 == "." }))
-    return visible.isEmpty ? "Shared Folder" : String(visible.prefix(200))
+    var capped = ""
+    for character in visible {
+      guard capped.utf8.count + String(character).utf8.count <= 200 else { break }
+      capped.append(character)
+    }
+    return capped.isEmpty ? "Shared Folder" : capped
   }
 
   enum Kind { case file, directory, symlink, other, missing, blocked }
@@ -166,7 +171,7 @@ public struct SharedFolderDirectory {
     guard fd >= 0 else { return nil }
     let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
     var info = stat()
-    guard fstat(fd, &info) == 0, info.st_mode & S_IFMT == S_IFREG, Int(info.st_size) <= limit,
+    guard fstat(fd, &info) == 0, info.st_mode & S_IFMT == S_IFREG,
       let data = try? handle.read(upToCount: limit + 1), data.count <= limit
     else { return nil }
     return data
@@ -313,7 +318,9 @@ public struct SharedFolderDirectory {
 
   private func removeEmptyDirectory(_ url: URL) throws {
     guard Self.kind(of: url.path) == .directory else { return }
-    for name in [Self.manifestName, ".\(Self.manifestName)\(Self.placeholderSuffix)", ".DS_Store"] {
+    let housekeeping: Set<String> = [Self.manifestName, ".\(Self.manifestName)\(Self.placeholderSuffix)", ".DS_Store"]
+    guard let names = try? fileManager.contentsOfDirectory(atPath: url.path), names.allSatisfy(housekeeping.contains) else { return }
+    for name in housekeeping {
       let item = url.appendingPathComponent(name).path
       if Self.kind(of: item) == .file { unlink(item) }
     }

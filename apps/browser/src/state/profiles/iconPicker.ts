@@ -9,7 +9,10 @@ export type ProfileIconPicker = { profileId: string; windowId: string; place: Pr
 
 export const useProfileIconPicker = create<{ picker: ProfileIconPicker | null }>()(() => ({ picker: null }));
 
-export const profileIconPickerIn = (windowId: string) => useProfileIconPicker.getState().picker?.windowId === windowId;
+export function profileIconPickerIn(windowId: string): boolean {
+  const picker = useProfileIconPicker.getState().picker;
+  return picker?.windowId === windowId && !!currentProfile(picker.profileId);
+}
 
 const measure = (view: View | null): Promise<IconPickerAnchor | null> =>
   new Promise((resolve) => (view ? view.measureInWindow((x, y, width, height) => resolve(width ? { x, y, width, height } : null)) : resolve(null)));

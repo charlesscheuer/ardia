@@ -23,7 +23,8 @@ Arc had shared folders; Dia has none, so this is an Ardia extra (`docs/dia-featu
 - The header shows a small `person.2.fill` after the name (the chevron's colour, 0.5), `icloud.and.arrow.down`
   while links wait for iCloud to download, and `exclamationmark.icloud` in `destructive` when the directory is
   missing or a write failed (`components/sidebar/SharedFolderMark.tsx`).
-- Removing a shared folder from the sidebar (Delete, Close, Ungroup, Unpin, Move to Bookmarks Bar) asks first, and
+- Removing a shared folder from the sidebar (Delete, Close from the menu, ⌃⌘W or the close control, Ungroup, Unpin,
+  Move to Bookmarks Bar, Move to Profile) asks first, and
   says the directory stays with every link and with the people it's shared with. It only unbinds; Ardia never
   deletes the directory.
 - Shared folders are per profile: the binding is the profile's, so each profile has its own.
@@ -40,9 +41,10 @@ Ardia Shared/
       Essay.webloc
 ```
 
-- A link's file name is its name (`/` and `:` become `-`, leading dots dropped, 200 characters at most), unique
+- A link's file name is its name (`/` and `:` become `-`, leading dots dropped, at most 200 bytes of UTF-8, never
+  splitting a character) plus `.webloc`, so a numbered copy stays under APFS's 255 bytes; unique
   case-insensitively in its directory (`Docs 2.webloc`).
-- `.ardia-folder.json` holds the order. Files it doesn't list come after the listed ones, in name order (numbers
+- `.ardia-folder.json` holds the order; one from a newer version of Ardia is read as unknown and never overwritten. Files it doesn't list come after the listed ones, in name order (numbers
   sorted as numbers), so a folder made in Finder reads fine and a file dropped in from Finder lands at the end.
 - Ardia reads Finder's binary weblocs too (converted to XML natively, parsed in JS).
 - Only `http(s)` links are synced. Any other file, a webloc Ardia can't read or whose URL isn't `http(s)`, and an
@@ -66,9 +68,11 @@ Ardia Shared/
 - Every link Ardia writes carries an identity in its webloc (an `ArdiaLink` string next to `URL`; Finder and Safari
   ignore it). Identities are resolved across the whole folder first: a link a collaborator moved into another
   subfolder is a move, so its tab follows and keeps local edits, which are then written at the new path. Within a
-  folder a link is matched by identity, then file name, then URL. When an identity sits on more than one file (a
-  Finder copy keeps it), the file whose name matches the link keeps it and every other copy is a new link that gets
-  a fresh identity written in place. A round writes content and identity changes in place before any rename, so a
+  folder a link is matched by identity, then file name, then URL. Subfolders are paired with directories once, for
+  the whole round and exclusively: by the identities their links share, then by name, then by file names inside.
+  Each identity has one owner across the whole folder: the file at the link's own place (its own name first), else
+  the first in folder order. Every other copy (a Finder copy keeps the identity, in the same subfolder or another) is
+  a new link and gets a fresh identity written in place, on the first bind too. A round writes content and identity changes in place before any rename, so a
   round cut short anywhere (a crash mid-swap) is picked up by the next one with no edit lost and no two links trading
   places. If a round would rename a file that has no identity yet (one made in Finder), it only writes identities
   and saves them in the base; the renames wait for the next round. A batch stops at its first conflict.

@@ -221,8 +221,9 @@ NSDictionary *FindMenuItem(NSArray *items, NSString *label) {
   NSMutableDictionary *item = [NSMutableDictionary dictionary];
   for (NSString *key in @[ @"kind", @"url", @"title", @"text" ])
     if (NSString *value = Field<NSString>(share, key)) item[key] = value;
-  if (NSData *image = Field<NSData>(share, @"image"))
-    item[@"file"] = SharedImageFile(image, Field<NSString>(share, @"mimeType"), item[@"url"]).absoluteString;
+  NSData *image = Field<NSData>(share, @"image");
+  if (NSURL *file = image ? SharedImageFile(image, Field<NSString>(share, @"mimeType"), item[@"url"]) : nil)
+    item[@"fileUrl"] = file.absoluteString;
   NSMutableDictionary *payload = [@{@"command" : @"share", @"text" : item[@"text"] ?: @"", @"share" : item} mutableCopy];
   NSArray<NSNumber *> *point = Field<NSArray>(share, @"point");
   NSView *content = self.window.contentView;

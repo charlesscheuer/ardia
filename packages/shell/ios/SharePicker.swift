@@ -39,7 +39,7 @@ enum SharePicker {
     guard !text.isEmpty, let window, let view = window.contentView else { return done() }
     let (rect, edge) = placement(in: view, anchor: anchor)
     if LaunchConfig.shared.background {
-      log("share sheet (not shown): text=\"\(text)\" window=#\(window.windowNumber) anchor=\(NSStringFromRect(rect))"
+      log("share sheet (not shown): text of \(text.count) characters window=#\(window.windowNumber) anchor=\(NSStringFromRect(rect))"
         + " services=\(services(for: [text as NSString]).map(\.title).joined(separator: "|"))")
       return done()
     }

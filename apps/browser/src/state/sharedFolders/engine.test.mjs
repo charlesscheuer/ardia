@@ -58,8 +58,17 @@ const { bindFolder, sharedFolderOf, useSharedFolders } = await import("./store.t
 const S = () => useBrowser.getState();
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
+let persisting = false;
+function fresh() {
+  if (!persisting) (startPersistence(), (persisting = true));
+  events.length = 0;
+  failing.clear();
+  unstageable.clear();
+  listing = { exists: true, root: { entries: [], manifest: null, manifestPending: false } };
+}
+
 function setup() {
-  startPersistence();
+  fresh();
   const w = S().createWindow({ url: "https://home.example/" });
   const t = S().newTab(w, { url: "https://one.example/", background: true });
   const g = S().groupTabs([t], { pinned: true, name: "Team" });
@@ -95,6 +104,7 @@ test("a session that can't be saved stops the round before any file changes or b
 });
 
 test("a session snapshot that never got staged stops the round too, and is staged again next time", async () => {
+  fresh();
   const w = S().createWindow({ url: "https://home2.example/" });
   const t = S().newTab(w, { url: "https://two.example/", background: true });
   const g = S().groupTabs([t], { pinned: true, name: "Second" });

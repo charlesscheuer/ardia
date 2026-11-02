@@ -17,7 +17,7 @@ export function shareFromPage(tab: Pick<Tab, "url" | "title" | "customTitle" | "
   if (!tab) return;
   if (share.kind === "page") return shareTab(tab, tab.windowId, null, anchor);
   if (share.kind === "text") return share.text ? shareText(share.text, tab.windowId, anchor) : undefined;
-  const url = (share.kind === "image" && share.file) || webUrl(share.url);
+  const url = (share.kind === "image" && share.fileUrl) || webUrl(share.url);
   if (!url) return;
-  return sharePage(url === share.file ? url : cleanUrl(url), share.title || null, tab.windowId, anchor);
+  return sharePage(url === share.fileUrl ? url : cleanUrl(url), share.title || null, tab.windowId, anchor);
 }

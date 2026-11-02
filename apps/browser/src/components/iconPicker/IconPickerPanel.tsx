@@ -70,6 +70,7 @@ function IconPickerPanel({ current, symbols, actions, onChoose, onClose, place, 
 
   return (
     <Animated.View
+      pointerEvents={place ? "auto" : "none"}
       style={[{ position: "absolute", top: place?.top ?? 0, left: place?.left ?? 0, width: ICON_PICKER_WIDTH }, place ? motion : HIDDEN]}
       onLayout={onLayout}
     >
@@ -84,6 +85,7 @@ function IconPickerPanel({ current, symbols, actions, onChoose, onClose, place, 
               placeholder={tab === "emoji" ? "Search emoji" : "Search symbols"}
               onEscape={onClose}
               onSubmit={() => {
+                if (!terms.length) return;
                 const first = sections.find((s) => s.icons.length)?.icons[0];
                 if (first) onChoose(first.icon);
               }}

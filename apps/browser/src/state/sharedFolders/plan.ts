@@ -5,14 +5,14 @@ import { weave } from "./merge";
 
 export type Planned = { ops: SharedFolderOp[]; base: BaseEntry[] };
 
-type Pass = { identityOnly: boolean; needsIdentity: boolean; ids: Map<string, string> };
+type Pass = { identityOnly: boolean; needsIdentity: boolean; ids: Map<string, string>; seen: Set<string> };
 
 export function planFiles(level: TargetLevel, base: BaseEntry[] = []): Planned {
-  const full: Pass = { identityOnly: false, needsIdentity: false, ids: new Map() };
+  const full: Pass = { identityOnly: false, needsIdentity: false, ids: new Map(), seen: new Set() };
   const ops: SharedFolderOp[] = [];
   const next = planLevel("", level, ops, full);
   if (!full.needsIdentity) return { ops, base: next };
-  const first: Pass = { identityOnly: true, needsIdentity: false, ids: new Map() };
+  const first: Pass = { identityOnly: true, needsIdentity: false, ids: new Map(), seen: new Set() };
   const identityOps: SharedFolderOp[] = [];
   planLevel("", level, identityOps, first);
   return { ops: identityOps, base: withIds(base, first.ids) };
@@ -56,7 +56,7 @@ function planLevel(prefix: string, level: TargetLevel, ops: SharedFolderOp[], pa
   for (const e of entries) if (e.file && !e.renamed) (finals.set(e, e.file), taken.add(e.file.toLowerCase()));
   for (const e of entries) if (!finals.has(e)) finals.set(e, uniqueFileName(e.name, e.kind, taken));
   const ids = new Map<TargetEntry, string | null>();
-  const seen = new Set<string>();
+  const { seen } = pass;
   for (const e of entries) {
     if (e.kind !== "link") continue;
     const moving = !!e.file && finals.get(e) !== e.file;

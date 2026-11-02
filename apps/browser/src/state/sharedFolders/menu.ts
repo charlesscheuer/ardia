@@ -1,6 +1,7 @@
 import type { BrowserState } from "../browser/store";
 import { pinKeyOf } from "../browser/model";
-import { canShareGroup, folderLabel, revealGroupFolder, shareFolder, sharedFolderOfGroup, stopSyncingGroup } from "./actions";
+import { revealGroupFolder, shareFolder, stopSyncingGroup } from "./actions";
+import { canShareGroup, folderLabel, sharedFolderOfGroup } from "./removal";
 import { folderRef, useSharedFolders, type SharedFolderSync } from "./store";
 
 export function syncStatusText(sync: SharedFolderSync | undefined, path: string): string {

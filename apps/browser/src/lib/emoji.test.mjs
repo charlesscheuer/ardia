@@ -22,6 +22,9 @@ test("search matches every term against the CLDR name, whole words first, then w
   assert.ok(found("heart").indexOf("❤️") < found("heart").indexOf("🥰"), "a whole word of the name before the start of one");
   assert.ok(found("japan").includes("🇯🇵"));
   assert.equal(found("rock")[0], "🪨");
+  assert.ok(found("curacao").includes("🇨🇼"));
+  assert.ok(found("reunion").includes("🇷🇪"));
+  assert.ok(found("Réunion").includes("🇷🇪"));
   assert.ok(found("happy").includes("😀"));
   assert.deepEqual(found("zzzz"), []);
   assert.equal(found("rocket")[0], "🚀");

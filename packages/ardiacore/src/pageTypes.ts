@@ -56,7 +56,7 @@ export type PageShare = {
   url?: string;
   title?: string;
   text?: string;
-  file?: string;
+  fileUrl?: string;
 };
 export type PageCommand = {
   command: "search" | "ask" | "copyLinkToHighlight" | "escape" | "share";

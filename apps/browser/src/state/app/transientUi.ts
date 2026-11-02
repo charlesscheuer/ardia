@@ -52,7 +52,7 @@ function menuHolds(at: Where): boolean {
 const SURFACES: Record<Surface, { open: (at: Where) => boolean; watch: Watch[] }> = {
   menu: { open: menuHolds, watch: [watchMenus] },
   rename: { open: (at) => sidebarUi().renaming?.windowId === at.windowId, watch: [onSidebarUi] },
-  iconPicker: { open: (at) => sidebarUi().iconPicker?.windowId === at.windowId || profileIconPickerIn(at.windowId), watch: [onSidebarUi, onProfileIconPicker] },
+  iconPicker: { open: (at) => sidebarUi().iconPicker?.windowId === at.windowId || profileIconPickerIn(at.windowId), watch: [onSidebarUi, onProfileIconPicker, onBrowser] },
   hoverCard: { open: (at) => sidebarUi().hover?.windowId === at.windowId && pointerOnCard(), watch: [onSidebarUi] },
   downloads: { open: (at) => !!browser().windowUi[at.windowId]?.downloadsOpen, watch: [onBrowser] },
   panel: { open: (at) => !!browser().windowUi[at.windowId]?.panel.open, watch: [onBrowser] },

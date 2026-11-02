@@ -1,6 +1,6 @@
 import { confirm, pickFolder } from "../../platform/dialogs";
 import { sharePage } from "../../platform/share";
-import { createSharedFolder, revealSharedFolder, sharedLocation } from "../../platform/sharedFolders";
+import { createSharedFolder, revealSharedFolder, sharedFoldersAvailable, sharedLocation } from "../../platform/sharedFolders";
 import { useBrowser, type BrowserState } from "../browser/store";
 import type { Tab } from "../browser/types";
 import { IDLE_LIVE, isIncognitoProfile, makeTab, newId, pinKeyOf } from "../browser/model";
@@ -13,28 +13,11 @@ import { isRegularWindow } from "../windows/small";
 import { measureRow } from "../sidebar/sidebarUi";
 import { EMPTY_FOLDER_URL } from "./applyFolder";
 import { syncFolderNow } from "./engine";
-import { bindFolder, boundFolders, sharedFolderOf, unbindFolder, type SharedFolder } from "./store";
+import { bindFolder, boundFolders, sharedFolderOf, unbindFolder } from "./store";
+import { canShareGroup, sharedFolderOfGroup } from "./removal";
+import { showToast } from "../app/toasts";
 
 const store = () => useBrowser.getState();
-
-export function sharedFolderOfGroup(s: Pick<BrowserState, "groups">, groupId: string): { profileId: string; key: string; folder: SharedFolder } | null {
-  const g = s.groups[groupId];
-  if (!g?.pinned || g.parentId) return null;
-  const key = pinKeyOf(g);
-  const folder = sharedFolderOf(g.profileId, key);
-  return folder ? { profileId: g.profileId, key, folder } : null;
-}
-
-export const canShareGroup = (s: Pick<BrowserState, "groups">, groupId: string) => {
-  const g = s.groups[groupId];
-  return !!g?.pinned && !g.parentId && !isIncognitoProfile(g.profileId);
-};
-
-export function folderLabel(path: string): string {
-  const { iCloudPath } = sharedLocation();
-  if (iCloudPath && path.startsWith(`${iCloudPath}/`)) return ["iCloud Drive", ...path.slice(iCloudPath.length + 1).split("/")].join(" › ");
-  return path;
-}
 
 export const fileUrlOf = (path: string) => `file://${path.split("/").map(encodeURIComponent).join("/")}/`;
 
@@ -72,7 +55,7 @@ export function withSharedGroup(s: BrowserState, windowId: string, name: string)
 
 export async function addSharedFolder(windowId: string) {
   const w = store().windows[windowId];
-  if (!isRegularWindow(w) || isIncognitoProfile(w.profileId)) return;
+  if (!sharedFoldersAvailable() || !isRegularWindow(w) || isIncognitoProfile(w.profileId)) return;
   const location = sharedLocation();
   const start = location.iCloudAvailable ? location.path : await chooseParent(windowId);
   if (!start) return;
@@ -80,7 +63,11 @@ export async function addSharedFolder(windowId: string) {
   if (!path) return;
   const profileId = store().windows[windowId]?.profileId ?? w.profileId;
   const known = boundFolders().find((b) => b.profileId === profileId && b.folder.path === path);
-  if (known) return syncFolderNow(profileId, known.key);
+  if (known) {
+    const g = Object.values(store().groups).find((x) => x.profileId === profileId && x.pinned && pinKeyOf(x) === known.key);
+    showToast(windowId, `“${(g && groupLabel(store(), g)) || path.split("/").at(-1)}” is already in your sidebar`, undefined, { icon: "person.2" });
+    return syncFolderNow(profileId, known.key);
+  }
   const [next, groupId] = withSharedGroup(store(), windowId, path.split("/").filter(Boolean).at(-1) ?? "Shared Folder");
   if (!groupId) return;
   useBrowser.setState(next);
@@ -94,18 +81,22 @@ export async function shareFolder(windowId: string, groupId: string) {
   const g = s.groups[groupId];
   if (!g || !canShareGroup(s, groupId)) return;
   const key = pinKeyOf(g);
-  let folder = sharedFolderOf(g.profileId, key);
-  if (!folder) {
-    const parent = await chooseParent(windowId);
-    if (!parent) return;
-    const path = await createSharedFolder(parent, groupLabel(s, g) || "Shared Folder");
-    bindFolder(g.profileId, key, path);
-    await syncFolderNow(g.profileId, key);
-    folder = sharedFolderOf(g.profileId, key);
-    if (!folder) return;
+  try {
+    let folder = sharedFolderOf(g.profileId, key);
+    if (!folder) {
+      const parent = await chooseParent(windowId);
+      if (!parent) return;
+      const path = await createSharedFolder(parent, groupLabel(s, g) || "Shared Folder");
+      bindFolder(g.profileId, key, path);
+      await syncFolderNow(g.profileId, key);
+      folder = sharedFolderOf(g.profileId, key);
+      if (!folder) return;
+    }
+    const anchor = await measureRow(windowId, groupId);
+    await sharePage(fileUrlOf(folder.path), groupLabel(store(), g) || null, windowId, anchor ? [anchor.x, anchor.y, anchor.width, anchor.height] : null);
+  } catch (error) {
+    showToast(windowId, "Couldn’t share this folder", error instanceof Error ? error.message : String(error), { icon: "exclamationmark.icloud" });
   }
-  const anchor = await measureRow(windowId, groupId);
-  await sharePage(fileUrlOf(folder.path), groupLabel(store(), g) || null, windowId, anchor ? [anchor.x, anchor.y, anchor.width, anchor.height] : null);
 }
 
 export function revealGroupFolder(groupId: string) {
@@ -116,19 +107,4 @@ export function revealGroupFolder(groupId: string) {
 export function stopSyncingGroup(groupId: string) {
   const shared = sharedFolderOfGroup(store(), groupId);
   if (shared) unbindFolder(shared.profileId, shared.key);
-}
-
-export async function confirmRemovingShared(windowId: string, groupId: string): Promise<boolean> {
-  const shared = sharedFolderOfGroup(store(), groupId);
-  if (!shared) return true;
-  const g = store().groups[groupId];
-  const name = (g && groupLabel(store(), g)) || "this folder";
-  const { confirmed } = await confirm({
-    title: `Remove “${name}” from the Sidebar?`,
-    message: `The folder stays in ${folderLabel(shared.folder.path)}, with every link in it, and the people you shared it with keep it. Ardia only stops syncing it on this Mac.`,
-    confirmTitle: "Remove",
-    destructive: true,
-    windowId,
-  });
-  return confirmed;
 }

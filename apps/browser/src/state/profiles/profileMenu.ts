@@ -6,7 +6,7 @@ import { deleteProfile } from "../browser/actions";
 import { currentProfile, currentProfileOrder, currentSettings } from "../browser/current";
 import type { ProfileColor } from "../browser/types";
 import { goToSettingsPane, openSettings } from "../settings/settingsWindows";
-import { setDefaultProfile, updateProfile } from "./actions";
+import { commitProfileName, setDefaultProfile } from "./actions";
 import { openProfileIconPicker } from "./iconPicker";
 import { choosePresetColor } from "./themeActions";
 
@@ -44,7 +44,7 @@ export async function renameProfile(profileId: string, windowId?: string) {
   const profile = currentProfile(profileId);
   if (!profile) return;
   const name = await prompt({ title: "Rename Profile", value: profile.name, placeholder: "Profile name", confirmTitle: "Rename", windowId });
-  if (name?.trim() && currentProfile(profileId)) updateProfile(profileId, { name: name.trim() });
+  if (name !== null) commitProfileName(profileId, name);
 }
 
 export async function showProfileMenu(

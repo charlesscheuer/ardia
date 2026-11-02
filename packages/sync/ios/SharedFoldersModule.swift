@@ -18,7 +18,7 @@ public class SharedFoldersModule: Module {
     Function("location") { () -> [String: Any] in
       [
         "path": Self.defaultParent.path,
-        "iCloudAvailable": Self.testParent != nil || Self.dataDirectory != nil || SyncFolder.iCloudDriveAvailable,
+        "iCloudAvailable": Self.testParent != nil || SyncFolder.iCloudDriveAvailable,
         "iCloudPath": SyncFolder.iCloudDrive.path,
       ]
     }

@@ -4,6 +4,7 @@ import Foundation
 final class SharedFolderWatcher {
   private let queue = DispatchQueue(label: "ardia.shared-folders.watch", qos: .utility)
   private var stream: FSEventStreamRef?
+  private var lastEvent = FSEventStreamEventId(kFSEventStreamEventIdSinceNow)
   private var roots: [(watched: String, real: String)] = []
   private let onChange: ([String]) -> Void
 
@@ -14,7 +15,7 @@ final class SharedFolderWatcher {
   func watch(_ paths: [String]) {
     queue.async {
       let next = paths.map { (watched: $0, real: Self.resolved($0)) }
-      guard next.map(\.real) != self.roots.map(\.real) else {
+      guard next.map(\.real) != self.roots.map(\.real) || (self.stream == nil && !next.isEmpty) else {
         self.roots = next
         return
       }
@@ -49,7 +50,7 @@ final class SharedFolderWatcher {
       kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagWatchRoot | kFSEventStreamCreateFlagNoDefer | kFSEventStreamCreateFlagUseCFTypes)
     guard
       let created = FSEventStreamCreate(
-        nil, callback, &context, roots.map(\.real) as CFArray, FSEventStreamEventId(kFSEventStreamEventIdSinceNow), 0.2, flags)
+        nil, callback, &context, roots.map(\.real) as CFArray, lastEvent, 0.2, flags)
     else { return }
     FSEventStreamSetDispatchQueue(created, queue)
     FSEventStreamStart(created)
@@ -58,6 +59,8 @@ final class SharedFolderWatcher {
 
   private func stopStream() {
     guard let stream else { return }
+    let latest = FSEventStreamGetLatestEventId(stream)
+    if latest != 0 { lastEvent = latest }
     FSEventStreamStop(stream)
     FSEventStreamInvalidate(stream)
     FSEventStreamRelease(stream)

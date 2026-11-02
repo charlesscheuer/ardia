@@ -5,23 +5,24 @@ export type EmojiSection = { title: string; emoji: EmojiEntry[] };
 
 let sections: EmojiSection[] | null = null;
 
-const wordsOf = (text: string) => ` ${text.toLowerCase().replace(/[.,:]/g, " ")}`;
+const fold = (text: string) => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+const wordsOf = (text: string) => ` ${fold(text).replace(/[.,:]/g, " ")}`;
 
 export function emojiSections(): EmojiSection[] {
   sections ??= EMOJI_GROUPS.map(({ title, list }) => ({
     title,
     emoji: list.split("\n").map((line) => {
       const [emoji = "", name = "", words = ""] = line.split("\t");
-      return { emoji, name, nameWords: wordsOf(name), words: ` ${words}` };
+      return { emoji, name, nameWords: wordsOf(name), words: ` ${fold(words)}` };
     }),
   }));
   return sections;
 }
 
 export const searchTerms = (query: string): string[] =>
-  query
+  fold(query)
     .trim()
-    .toLowerCase()
     .split(/[\s.,:]+/)
     .filter(Boolean);
 

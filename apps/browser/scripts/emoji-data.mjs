@@ -69,6 +69,9 @@ for (const line of readFileSync(testFile, "utf8").split("\n")) {
   byGroup.get(group).push([emoji, clean(name), wordsFor(emoji, name)]);
 }
 
+const empty = ORDER.filter((title) => !byGroup.get(title).length);
+if (empty.length) throw new Error(`no emoji parsed for ${empty.join(", ")}: is ${testFile} Unicode's emoji-test.txt?`);
+
 const escape = (text) => text.replace(/[\\`$]/g, (c) => `\\${c}`);
 const body = ORDER.map((title) => {
   const rows = byGroup.get(title).map((cols) => escape(cols.filter((c, i) => i < 2 || c).join("\t")));

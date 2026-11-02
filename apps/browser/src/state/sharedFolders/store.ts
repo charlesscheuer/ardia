@@ -42,9 +42,21 @@ export const useSharedFolders = create<SharedFoldersState>()(() => ({ folders: l
 const state = () => useSharedFolders.getState();
 
 let timer: ReturnType<typeof setTimeout> | undefined;
+const writeFolders = () => writeDocument(DOC, versionedJson({ folders: state().folders }, DOC_VERSION));
+
 function save() {
   clearTimeout(timer);
-  timer = setTimeout(() => writeDocument(DOC, versionedJson({ folders: state().folders }, DOC_VERSION)), SAVE_DELAY_MS);
+  timer = setTimeout(() => {
+    timer = undefined;
+    writeFolders();
+  }, SAVE_DELAY_MS);
+}
+
+export async function saveFoldersNow() {
+  if (timer === undefined) return;
+  clearTimeout(timer);
+  timer = undefined;
+  writeFolders();
 }
 
 export const folderRef = (profileId: string, key: string) => `${profileId}\u0001${key}`;

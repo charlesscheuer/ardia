@@ -2,6 +2,9 @@ import { useBrowser, type BrowserState } from "../browser/store";
 import { pinKeyOf } from "../browser/model";
 import { fromSync } from "../pins/pinOrderChoices";
 import { sessionSaved } from "../session/persist";
+import { saveBeforeQuit } from "../app/quit";
+import { guardGroupClose } from "../groups/closeGuard";
+import { confirmRemovingShared } from "./removal";
 import { isRegularWindow } from "../windows/small";
 import { onSharedFolderChange, readSharedFolder, sharedFoldersAvailable, watchSharedFolders, writeSharedFolder } from "../../platform/sharedFolders";
 import { APPLIED_FIELDS, withFolder } from "./applyFolder";
@@ -9,7 +12,7 @@ import { knownNames, localFolder, signatureOf } from "./local";
 import { mergeFolder } from "./merge";
 import { planFiles } from "./plan";
 import { remoteLevel } from "./remote";
-import { boundFolders, folderRef, setFolderBase, setFolderSync, sharedFolderOf, unbindFolder, useSharedFolders } from "./store";
+import { boundFolders, folderRef, saveFoldersNow, setFolderBase, setFolderSync, sharedFolderOf, unbindFolder, useSharedFolders } from "./store";
 
 type Place = { kind: "shown"; groupId: string } | { kind: "hidden" } | { kind: "gone" };
 
@@ -36,7 +39,6 @@ export function folderPlace(s: BrowserState, profileId: string, key: string): Pl
   return shows ? { kind: "gone" } : { kind: "hidden" };
 }
 
-const refs = new Map<string, { profileId: string; key: string }>();
 const signatures = new Map<string, string>();
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 const running = new Map<string, Promise<void>>();
@@ -44,7 +46,6 @@ const queued = new Set<string>();
 
 function schedule(profileId: string, key: string, delay: number) {
   const ref = folderRef(profileId, key);
-  refs.set(ref, { profileId, key });
   clearTimeout(timers.get(ref));
   const fire = () => {
     timers.delete(ref);
@@ -96,18 +97,20 @@ async function round(profileId: string, key: string) {
   const { level, waiting } = mergeFolder(current.base, local.entries, remote);
   const next = withFolder(s, here.groupId, level, local);
   if (next !== s) fromSync(() => useBrowser.setState(Object.fromEntries(APPLIED_FIELDS.map((f) => [f, next[f]]))));
+  const { ops, base } = planFiles(level, current.base);
+  const settled = signatureOf(localFolder(store(), here.groupId, knownNames(base)));
   if (!(await sessionSaved())) {
     schedule(profileId, key, CONFLICT_RETRY_MS);
     return setFolderSync(profileId, key, { state: "syncing", error: null });
   }
-  const { ops, base } = planFiles(level, current.base);
   const { conflicts } = ops.length ? await writeSharedFolder(current.path, ops) : { conflicts: [] };
   if (conflicts.length) {
     schedule(profileId, key, CONFLICT_RETRY_MS);
     return setFolderSync(profileId, key, { state: "syncing", error: null });
   }
   setFolderBase(profileId, key, base);
-  signatures.set(ref, signatureOf(localFolder(store(), here.groupId, knownNames(base))));
+  signatures.set(ref, settled);
+  checkLocal();
   setFolderSync(profileId, key, { state: waiting ? "waiting" : "synced", waiting, error: null });
 }
 
@@ -136,6 +139,8 @@ let checkTimer: ReturnType<typeof setTimeout> | undefined;
 
 export function startSharedFolders() {
   if (!sharedFoldersAvailable()) return;
+  guardGroupClose(confirmRemovingShared);
+  saveBeforeQuit(saveFoldersNow);
   watchBound();
   useSharedFolders.subscribe((s, prev) => {
     if (s.folders !== prev.folders) watchBound();

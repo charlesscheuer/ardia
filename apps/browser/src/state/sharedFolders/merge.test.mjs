@@ -390,3 +390,69 @@ test("a swap of links that have no identity yet (made in Finder), interrupted an
     }
   }
 });
+
+test("two subfolders with the same child name, both renamed elsewhere, keep their own links and a local edit", () => {
+  const fs = dir();
+  const a = mac([
+    { kind: "dir", key: "g1", name: "First", children: [link("t1", "Doc", "https://first.example/")] },
+    { kind: "dir", key: "g2", name: "Second", children: [link("t2", "Doc", "https://second.example/")] },
+  ]);
+  cycle(a, fs);
+  fs.files.set("Zebra", fs.files.get("First"));
+  fs.files.set("Apple", fs.files.get("Second"));
+  fs.files.delete("First");
+  fs.files.delete("Second");
+  a.local = [{ ...a.local[0], children: [link("t1", "Doc", "https://first-edited.example/")] }, a.local[1]];
+  for (let i = 0; i < 2; i++) cycle(a, fs);
+  assert.deepEqual(linkKeys(a.local), { t1: "Doc=https://first-edited.example/", t2: "Doc=https://second.example/" });
+  assert.equal(fs.files.get("Zebra").dir.files.get("Doc.webloc").url, "https://first-edited.example/");
+  assert.equal(fs.files.get("Apple").dir.files.get("Doc.webloc").url, "https://second.example/");
+});
+
+test("a Finder copy in another subfolder gets its own identity on first bind, so later edits never cross", () => {
+  const fs = dir({ A: { dir: dir({ "Doc.webloc": { url: "https://a.example/", id: "same" } }) }, B: { dir: dir({ "Doc.webloc": { url: "https://b.example/", id: "same" } }) } });
+  const a = mac();
+  cycle(a, fs);
+  const idA = fs.files.get("A").dir.files.get("Doc.webloc").id;
+  const idB = fs.files.get("B").dir.files.get("Doc.webloc").id;
+  assert.ok(idA && idB && idA !== idB, "the copies end up with distinct identities in the files");
+  const baseIds = a.base.flatMap((d) => d.children.map((c) => c.id));
+  assert.deepEqual(baseIds.sort(), [idA, idB].sort(), "and in the base");
+  const keyB = a.local.find((d) => d.name === "B").children[0].key;
+  fs.files.get("A").dir.files.delete("Doc.webloc");
+  a.local = a.local.map((d) => (d.name === "B" ? { ...d, children: [{ ...d.children[0], url: "https://b-edited.example/" }] } : d));
+  for (let i = 0; i < 2; i++) cycle(a, fs);
+  assert.equal(linkKeys(a.local)[keyB], "Doc=https://b-edited.example/");
+  assert.equal(fs.files.get("B").dir.files.get("Doc.webloc").url, "https://b-edited.example/");
+});
+
+test("a link a collaborator moves into a subfolder the user just deleted keeps its tab and edit", () => {
+  const fs = dir();
+  const a = mac([link("t1", "A", "https://a.example/"), { kind: "dir", key: "g1", name: "Sub", children: [link("t2", "Essay", "https://essay.example/")] }]);
+  cycle(a, fs);
+  const sub = fs.files.get("Sub").dir;
+  sub.files.set("A.webloc", fs.files.get("A.webloc"));
+  fs.files.delete("A.webloc");
+  a.local = [link("t1", "A", "https://a2.example/")];
+  for (let i = 0; i < 2; i++) cycle(a, fs);
+  assert.deepEqual(linkKeys(a.local), { t1: "A=https://a2.example/" });
+  assert.deepEqual([...sub.files.keys()], ["A.webloc"], "the folder the user deleted keeps only the moved link");
+  assert.equal(sub.files.get("A.webloc").url, "https://a2.example/");
+});
+
+test("file names are capped by their UTF-8 bytes, so long titles in any script stay under APFS's 255", async () => {
+  const { fileNameFor, uniqueFileName } = await import("./tree.ts");
+  const bytes = (s) => Buffer.byteLength(s, "utf8");
+  for (const title of ["界".repeat(150), "д".repeat(200), "😀".repeat(80), "a".repeat(300)]) {
+    assert.ok(bytes(fileNameFor(title, "link")) <= 255 - 8, `${title.slice(0, 3)}… fits with room for a number`);
+    assert.ok(bytes(uniqueFileName(title, "link", new Set([fileNameFor(title, "link").toLowerCase()]))) <= 255);
+  }
+  assert.ok(!fileNameFor("😀".repeat(80), "link").includes("�"), "never splits a character");
+});
+
+test("an order file from a newer version is left alone", async () => {
+  const { remoteLevel } = await import("./remote.ts");
+  const level = remoteLevel({ entries: [], manifest: JSON.stringify({ version: 2, order: ["a"] }), manifestPending: false });
+  assert.equal(level.manifestPending, true);
+  assert.equal(remoteLevel({ entries: [], manifest: "{", manifestPending: false }).manifestPending, false, "junk is replaced");
+});
