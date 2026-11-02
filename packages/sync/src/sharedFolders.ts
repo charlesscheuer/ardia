@@ -7,7 +7,7 @@ export type SharedListingEntry =
 
 export type SharedListingLevel = { entries: SharedListingEntry[]; manifest: string | null; manifestPending: boolean; error?: string };
 
-export type SharedListing = { exists: false } | { exists: true; root: SharedListingLevel };
+export type SharedListing = { exists: false; error?: string } | { exists: true; root: SharedListingLevel };
 
 export type SharedFolderOp =
   | { op: "write"; path: string; text: string; create: boolean; expect: string | null }

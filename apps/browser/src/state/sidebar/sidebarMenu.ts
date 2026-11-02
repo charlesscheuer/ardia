@@ -13,7 +13,7 @@ import { newLiveFolderMenuItem, runNewLiveFolder } from "./liveMenus";
 import { sections } from "./menuParts";
 import { pinnedFoldMenuItem, runPinnedFold } from "./pinnedFold";
 import { addSharedFolder } from "../sharedFolders/actions";
-import { isIncognitoProfile } from "../browser/model";
+import { canAddSharedFolder } from "../sharedFolders/removal";
 
 const store = () => useBrowser.getState();
 
@@ -27,7 +27,7 @@ export function sidebarMenuItems(s: BrowserState, windowId: string): MenuItem[] 
     [
       { id: "newGroup", title: "New Group", symbol: "folder.badge.plus" },
       newLiveFolderMenuItem(),
-      ...(w && !isIncognitoProfile(w.profileId) ? [{ id: "addShared", title: "Add Shared Folder…", symbol: "person.2" }] : []),
+      ...(canAddSharedFolder(w?.profileId) ? [{ id: "addShared", title: "Add Shared Folder…", symbol: "person.2" }] : []),
     ],
     [{ id: "newProfile", title: "New Profile…", symbol: "plus" }],
     [{ id: "bookmarkAll", title: "Bookmark All Tabs…", symbol: "bookmark", ...menuShortcut("bookmarkAllTabs", s) }],

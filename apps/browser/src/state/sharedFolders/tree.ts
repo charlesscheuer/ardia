@@ -14,7 +14,7 @@ export type RemoteLevel = { entries: RemoteEntry[]; manifest: string[] | null; m
 
 export type Dropped = { kind: "link"; file: string; url: string } | { kind: "dir"; file: string; known: BaseEntry[] };
 
-export type TargetLink = { kind: "link"; key: string | null; file: string | null; name: string; url: string; renamed: boolean; write: boolean; expect: string | null; id: string | null; fileId: string | null };
+export type TargetLink = { kind: "link"; key: string | null; file: string | null; name: string; url: string; renamed: boolean; write: boolean; expect: string | null; id: string | null; fileId: string | null; heldName: string | null };
 export type TargetDir = { kind: "dir"; key: string | null; file: string | null; name: string; renamed: boolean; level: TargetLevel };
 export type TargetEntry = TargetLink | TargetDir;
 export type TargetLevel = { entries: TargetEntry[]; dropped: Dropped[]; remote: RemoteLevel | null };
@@ -84,7 +84,7 @@ export function parseManifest(text: string | null): string[] | null {
     const doc: unknown = JSON.parse(text);
     if (!doc || typeof doc !== "object") return null;
     const { version, order } = doc as { version?: unknown; order?: unknown };
-    if (typeof version !== "number" || version > MANIFEST_VERSION) return null;
+    if (version !== MANIFEST_VERSION) return null;
     return Array.isArray(order) ? order.filter((f): f is string => typeof f === "string") : null;
   } catch {
     return null;

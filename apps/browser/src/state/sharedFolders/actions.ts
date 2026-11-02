@@ -13,7 +13,7 @@ import { isRegularWindow } from "../windows/small";
 import { measureRow } from "../sidebar/sidebarUi";
 import { EMPTY_FOLDER_URL } from "./applyFolder";
 import { syncFolderNow } from "./engine";
-import { bindFolder, boundFolders, sharedFolderOf, unbindFolder } from "./store";
+import { bindFolder, boundFolders, folderRef, sharedFolderOf, unbindFolder, useSharedFolders } from "./store";
 import { canShareGroup, sharedFolderOfGroup } from "./removal";
 import { showToast } from "../app/toasts";
 
@@ -88,9 +88,14 @@ export async function shareFolder(windowId: string, groupId: string) {
       if (!parent) return;
       const path = await createSharedFolder(parent, groupLabel(s, g) || "Shared Folder");
       bindFolder(g.profileId, key, path);
-      await syncFolderNow(g.profileId, key);
-      folder = sharedFolderOf(g.profileId, key);
-      if (!folder) return;
+    }
+    await syncFolderNow(g.profileId, key);
+    folder = sharedFolderOf(g.profileId, key);
+    if (!folder) return;
+    const state = useSharedFolders.getState().sync[folderRef(g.profileId, key)]?.state;
+    if (state !== "synced" && state !== "waiting") {
+      const why = useSharedFolders.getState().sync[folderRef(g.profileId, key)]?.error;
+      return showToast(windowId, "Couldn’t share this folder yet", why ?? "Its links aren’t in the folder yet. Try again in a moment.", { icon: "exclamationmark.icloud" });
     }
     const anchor = await measureRow(windowId, groupId);
     await sharePage(fileUrlOf(folder.path), groupLabel(store(), g) || null, windowId, anchor ? [anchor.x, anchor.y, anchor.width, anchor.height] : null);

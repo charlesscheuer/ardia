@@ -468,3 +468,51 @@ test("an order file from a newer version is left alone", async () => {
   assert.deepEqual(manifestWrites(JSON.stringify({ version: 2, order: ["A.webloc", "B.webloc"] })), []);
   assert.equal(manifestWrites("{").length, 1, "junk is replaced");
 });
+
+test("a link needs a host to be shared", async () => {
+  const { isShareableUrl } = await import("./remote.ts");
+  assert.equal(isShareableUrl("https:///"), false);
+  assert.equal(isShareableUrl("https:// x"), false);
+  assert.equal(isShareableUrl("https://a.example/"), true);
+});
+
+test("only order file version 1 sets the order; older or odd versions read as no order", () => {
+  for (const version of [0, -1, 0.5]) assert.equal(parseManifest(JSON.stringify({ version, order: ["a"] })), null, `version ${version}`);
+  assert.deepEqual(parseManifest(JSON.stringify({ version: 1, order: ["a"] })), ["a"]);
+});
+
+test("a copy left in place with the same identity doesn't keep the tab when the original was moved", () => {
+  const fs = dir();
+  const a = mac([link("t1", "A", "https://a.example/"), { kind: "dir", key: "g1", name: "Sub", children: [link("t2", "Essay", "https://essay.example/")] }]);
+  cycle(a, fs);
+  const original = fs.files.get("A.webloc");
+  fs.files.get("Sub").dir.files.set("A.webloc", original);
+  fs.files.set("A copy.webloc", { url: "https://a.example/", id: original.id });
+  fs.files.delete("A.webloc");
+  a.local = [{ ...a.local[0], url: "https://a2.example/" }, a.local[1]];
+  for (let i = 0; i < 2; i++) cycle(a, fs);
+  assert.equal(linkKeys(a.local).t1, "A=https://a2.example/");
+  assert.ok(a.local.find((e) => e.kind === "dir").children.some((c) => c.key === "t1"), "the tab followed the original into Sub");
+  assert.equal(fs.files.get("Sub").dir.files.get("A.webloc").url, "https://a2.example/");
+  assert.ok(fs.files.get("A copy.webloc").id !== original.id, "the copy got its own identity");
+});
+
+test("a link still downloading is neither written nor renamed, keeps its identity, and is renamed once it arrives", () => {
+  const fs = dir();
+  const a = mac([link("t1", "A", "https://a.example/")]);
+  cycle(a, fs);
+  const t1 = "t1";
+  const arrived = fs.files.get("A.webloc");
+  fs.files.set("A.webloc", { held: true });
+  a.local = [{ ...a.local[0], name: "Renamed" }];
+  const { level } = mergeFolder(a.base, a.local, read(fs));
+  const { ops, base } = planFiles(level, a.base);
+  assert.deepEqual(ops.filter((o) => o.path === "A.webloc"), [], "nothing touches the pending file");
+  assert.equal(base[0].id, arrived.id, "its identity is kept");
+  assert.equal(base[0].name, "A", "the rename stays pending");
+  a.base = base;
+  fs.files.set("A.webloc", arrived);
+  cycle(a, fs);
+  assert.deepEqual(files(fs), ["Renamed.webloc"]);
+  assert.equal(linkKeys(a.local)[t1], "Renamed=https://a.example/");
+});

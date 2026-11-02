@@ -54,21 +54,23 @@ export function identities(base: BaseEntry[], local: LocalEntry[], remote: Remot
   mapDirs(base, remote, dirs, levels);
   const ownerOf = new Map<string, RemoteLink>();
   const baseOwner = new Map<string, BaseLink>();
-  const own = (b: BaseLink, r: RemoteLink | undefined) => r && b.id && (ownerOf.set(b.id, r), baseOwner.set(b.id, b));
-  for (const [entries, level] of levels) {
-    const here = level ? level.entries.filter((r): r is RemoteLink => r.kind === "link") : [];
-    for (const b of entries) if (b.kind === "link" && b.id && !baseOwner.has(b.id)) own(b, preferred(b, here.filter((r) => r.id === b.id)));
-  }
+  const levelOf = new Map<RemoteLink, RemoteLevel>();
+  const index = (level: RemoteLevel) => level.entries.forEach((r) => (r.kind === "link" ? levelOf.set(r, level) : r.kind === "dir" && index(r.level)));
+  index(remote);
   const all = linksIn(remote);
   const moved = new Map<BaseLink, RemoteLink>();
   const arriving = new Map<RemoteLink, BaseLink>();
-  for (const b of baseLinks(base)) {
-    if (!b.id || baseOwner.has(b.id)) continue;
-    const r = preferred(b, all.filter((x) => x.id === b.id));
-    if (!r) continue;
-    own(b, r);
-    moved.set(b, r);
-    arriving.set(r, b);
+  for (const [entries, level] of levels) {
+    for (const b of entries) {
+      if (b.kind !== "link" || !b.id || baseOwner.has(b.id)) continue;
+      const everywhere = all.filter((x) => x.id === b.id && !arriving.has(x) && ![...ownerOf.values()].includes(x));
+      const here = everywhere.filter((x) => levelOf.get(x) === level);
+      const r = here.find((x) => x.file === b.file) ?? everywhere.find((x) => x.file === b.file) ?? preferred(b, here) ?? preferred(b, everywhere);
+      if (!r) continue;
+      ownerOf.set(b.id, r);
+      baseOwner.set(b.id, b);
+      if (levelOf.get(r) !== level) (moved.set(b, r), arriving.set(r, b));
+    }
   }
   for (const r of all) if (r.id && !ownerOf.has(r.id)) ownerOf.set(r.id, r);
   return { dirs, ownerOf, baseOwner, moved, arriving, arrivingKeys: new Set([...moved.keys()].map((b) => b.key)), localLinks: localLinks(local, new Map()) };

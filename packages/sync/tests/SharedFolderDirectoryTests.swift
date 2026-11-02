@@ -176,5 +176,15 @@ final class SharedFolderDirectoryTests: XCTestCase {
     XCTAssertLessThanOrEqual(SharedFolderDirectory.folderName(String(repeating: "界", count: 150)).utf8.count, 200)
     XCTAssertEqual(SharedFolderDirectory.folderName("a/b"), "a-b")
   }
-}
 
+  func testAFolderThatCantBeOpenedIsAnErrorNotMissing() throws {
+    let parent = try folder("locked")
+    let root = try folder("locked/Shared")
+    chmod(parent.path, 0o000)
+    defer { chmod(parent.path, 0o755) }
+    let listing = SharedFolderDirectory(root: root).read()
+    XCTAssertEqual(listing["exists"] as? Bool, false)
+    XCTAssertNotNil(listing["error"] as? String)
+    XCTAssertNil(SharedFolderDirectory(root: scratch.appendingPathComponent("nowhere")).read()["error"])
+  }
+}

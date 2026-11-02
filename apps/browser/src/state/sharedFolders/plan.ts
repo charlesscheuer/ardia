@@ -53,12 +53,18 @@ function planLevel(prefix: string, level: TargetLevel, ops: SharedFolderOp[], pa
   const kept = (level.remote?.entries ?? []).map((r) => r.file).filter((f) => !referenced.has(f) && !droppedFiles.has(f));
   const taken = new Set(kept.map((f) => f.toLowerCase()));
   const finals = new Map<TargetEntry, string>();
-  for (const e of entries) if (e.file && !e.renamed) (finals.set(e, e.file), taken.add(e.file.toLowerCase()));
+  const held = (e: TargetEntry) => e.kind === "link" && e.heldName !== null;
+  for (const e of entries) if (e.file && (!e.renamed || held(e))) (finals.set(e, e.file), taken.add(e.file.toLowerCase()));
   for (const e of entries) if (!finals.has(e)) finals.set(e, uniqueFileName(e.name, e.kind, taken));
   const ids = new Map<TargetEntry, string | null>();
   const { seen } = pass;
   for (const e of entries) {
     if (e.kind !== "link") continue;
+    if (held(e)) {
+      if (e.id) seen.add(e.id);
+      ids.set(e, e.id);
+      continue;
+    }
     const moving = !!e.file && finals.get(e) !== e.file;
     if (moving && !e.fileId) pass.needsIdentity = true;
     let id = e.id && !seen.has(e.id) ? e.id : null;
@@ -68,7 +74,7 @@ function planLevel(prefix: string, level: TargetLevel, ops: SharedFolderOp[], pa
     if (id && pass.identityOnly) pass.ids.set(e.key!, id);
   }
   for (const e of entries) {
-    if (e.kind !== "link" || !e.file || (!e.write && (ids.get(e) ?? null) === (e.fileId ?? null))) continue;
+    if (e.kind !== "link" || !e.file || (!e.write && (held(e) || (ids.get(e) ?? null) === (e.fileId ?? null)))) continue;
     ops.push({ op: "write", path: `${prefix}${e.file}`, text: weblocText(e.url, ids.get(e) ?? null), create: false, expect: e.expect });
   }
   if (pass.identityOnly) {
@@ -83,7 +89,7 @@ function planLevel(prefix: string, level: TargetLevel, ops: SharedFolderOp[], pa
     const file = finals.get(e)!;
     if (e.kind === "link") {
       if (!e.file) ops.push({ op: "write", path: `${prefix}${file}`, text: weblocText(e.url, ids.get(e) ?? null), create: true, expect: null });
-      base.push({ kind: "link", key: e.key!, file, name: e.name, url: e.url, id: ids.get(e) ?? null });
+      base.push({ kind: "link", key: e.key!, file, name: e.heldName ?? e.name, url: e.url, id: ids.get(e) ?? null });
     } else {
       if (!e.file) ops.push({ op: "mkdir", path: `${prefix}${file}` });
       base.push({ kind: "dir", key: e.key!, file, name: e.name, children: planLevel(`${prefix}${file}/`, e.level, ops, pass) });

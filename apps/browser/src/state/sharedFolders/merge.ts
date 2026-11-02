@@ -73,8 +73,9 @@ function mergeLevel(base: BaseEntry[], local: LocalEntry[], remote: RemoteLevel,
       const localMoved = here.url !== b.url;
       const url = localMoved || remoteUrl === null ? here.url : remoteUrl;
       const ownsFile = owned(r) && (!ctx.baseOwner.has(fileId!) || ctx.baseOwner.get(fileId!) === b);
-      const id = ownsFile ? fileId : b.id && ctx.baseOwner.get(b.id) === b ? b.id : null;
-      entries.push({ kind: "link", key: b.key, file: r.file, name, url, renamed: localRenamed, write: remoteUrl === null ? localMoved : url !== remoteUrl, expect: remoteUrl ?? b.url, id, fileId });
+      const id = ownsFile ? fileId : b.id && (ctx.baseOwner.get(b.id) ?? b) === b ? b.id : null;
+      const heldName = r.kind === "held" ? b.name : null;
+      entries.push({ kind: "link", key: b.key, file: r.file, name, url, renamed: localRenamed, write: remoteUrl === null ? localMoved : url !== remoteUrl, expect: remoteUrl ?? b.url, id, fileId, heldName });
     } else if (here.kind === "dir" && b.kind === "dir" && r.kind === "dir") {
       entries.push({ kind: "dir", key: b.key, file: r.file, name, renamed: localRenamed, level: mergeLevel(b.children, here.children, r.level, ctx) });
     }
@@ -92,7 +93,7 @@ function mergeLevel(base: BaseEntry[], local: LocalEntry[], remote: RemoteLevel,
     if (l.kind === "link") {
       const fileId = twin?.kind === "link" ? twin.id : null;
       const id = twin && owned(twin) && !ctx.baseOwner.has(fileId!) ? fileId : null;
-      entries.push({ kind: "link", key: l.key, file: twin?.file ?? null, name: l.name, url: l.url, renamed: true, write: !twin, expect: twin?.kind === "link" ? twin.url : null, id, fileId });
+      entries.push({ kind: "link", key: l.key, file: twin?.file ?? null, name: l.name, url: l.url, renamed: true, write: !twin, expect: twin?.kind === "link" ? twin.url : null, id, fileId, heldName: null });
     } else {
       const level = twin?.kind === "dir" ? twin.level : EMPTY_REMOTE;
       entries.push({ kind: "dir", key: l.key, file: twin?.file ?? null, name: l.name, renamed: true, level: mergeLevel([], (l as LocalDir).children, level, ctx) });
@@ -104,7 +105,7 @@ function mergeLevel(base: BaseEntry[], local: LocalEntry[], remote: RemoteLevel,
     if (r.kind === "held") ctx.waiting += r.waiting ? 1 : 0;
     else if (r.kind === "link") {
       const own = owned(r) && !ctx.baseOwner.has(r.id!);
-      entries.push({ kind: "link", key: null, file: r.file, name: nameOfFile(r.file, "link"), url: r.url, renamed: false, write: false, expect: r.url, id: own ? r.id : null, fileId: r.id });
+      entries.push({ kind: "link", key: null, file: r.file, name: nameOfFile(r.file, "link"), url: r.url, renamed: false, write: false, expect: r.url, id: own ? r.id : null, fileId: r.id, heldName: null });
     } else entries.push({ kind: "dir", key: null, file: r.file, name: r.file, renamed: false, level: mergeLevel([], [], r.level, ctx) });
   }
 

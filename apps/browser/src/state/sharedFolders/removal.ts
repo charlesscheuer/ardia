@@ -20,6 +20,8 @@ export const canShareGroup = (s: Pick<BrowserState, "groups">, groupId: string) 
   return sharedFoldersAvailable() && !!g?.pinned && !g.parentId && !isIncognitoProfile(g.profileId);
 };
 
+export const canAddSharedFolder = (profileId: string | undefined) => sharedFoldersAvailable() && !!profileId && !isIncognitoProfile(profileId);
+
 export function folderLabel(path: string): string {
   const iCloudPath = sharedFoldersAvailable() ? sharedLocation().iCloudPath : null;
   if (iCloudPath && path.startsWith(`${iCloudPath}/`)) return ["iCloud Drive", ...path.slice(iCloudPath.length + 1).split("/")].join(" › ");

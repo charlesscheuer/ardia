@@ -27,7 +27,8 @@ export function weblocText(url: string, id: string | null = null): string {
 }
 
 const stringFor = (text: string, key: string) => {
-  const found = new RegExp(`<key>\\s*${key}\\s*</key>\\s*<string>([\\s\\S]*?)</string>`, "i").exec(text);
+  const plain = text.replace(/<!--[\s\S]*?-->/g, "");
+  const found = new RegExp(`<key>\\s*${key}\\s*</key>\\s*<string>([\\s\\S]*?)</string>`, "i").exec(plain);
   return found ? unescapeXml(found[1]!).trim() || null : null;
 };
 

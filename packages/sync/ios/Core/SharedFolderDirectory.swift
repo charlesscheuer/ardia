@@ -18,7 +18,13 @@ public struct SharedFolderDirectory {
   }
 
   public func read() -> [String: Any] {
-    guard Self.kind(of: root.path) == .directory || Self.isDirectoryFollowing(root.path) else { return ["exists": false] }
+    var info = stat()
+    if stat(root.path, &info) != 0 {
+      let code = errno
+      guard code != ENOENT else { return ["exists": false] }
+      return ["exists": false, "error": "Can’t open “\(root.lastPathComponent)”: \(String(cString: strerror(code)))"]
+    }
+    guard info.st_mode & S_IFMT == S_IFDIR else { return ["exists": false] }
     return ["exists": true, "root": level(URL(fileURLWithPath: rootReal, isDirectory: true), depth: 0)]
   }
 

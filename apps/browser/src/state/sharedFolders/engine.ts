@@ -83,27 +83,31 @@ async function round(profileId: string, key: string) {
     return;
   }
   const listing = await readSharedFolder(folder.path);
+  const stale = () => sharedFolderOf(profileId, key) !== folder;
+  if (stale()) return void queued.add(ref);
   if (!listing.exists) {
+    if (listing.error) return setFolderSync(profileId, key, { state: "error", error: listing.error });
     signatures.set(ref, signatureOf(localFolder(store(), place.groupId, knownNames(folder.base))));
     return setFolderSync(profileId, key, { state: "missing", error: null });
   }
   const remote = remoteLevel(listing.root);
   const s = store();
   const here = folderPlace(s, profileId, key);
-  const current = sharedFolderOf(profileId, key);
-  if (here.kind !== "shown" || !current) return void queued.add(ref);
-  const local = localFolder(s, here.groupId, knownNames(current.base));
+  if (here.kind !== "shown") return void queued.add(ref);
+  const local = localFolder(s, here.groupId, knownNames(folder.base));
   if (!local) return;
-  const { level, waiting } = mergeFolder(current.base, local.entries, remote);
+  const { level, waiting } = mergeFolder(folder.base, local.entries, remote);
   const next = withFolder(s, here.groupId, level, local);
   if (next !== s) fromSync(() => useBrowser.setState(Object.fromEntries(APPLIED_FIELDS.map((f) => [f, next[f]]))));
-  const { ops, base } = planFiles(level, current.base);
+  const { ops, base } = planFiles(level, folder.base);
   const settled = signatureOf(localFolder(store(), here.groupId, knownNames(base)));
   if (!(await sessionSaved())) {
     schedule(profileId, key, CONFLICT_RETRY_MS);
     return setFolderSync(profileId, key, { state: "syncing", error: null });
   }
-  const { conflicts } = ops.length ? await writeSharedFolder(current.path, ops) : { conflicts: [] };
+  if (stale()) return void queued.add(ref);
+  const { conflicts } = ops.length ? await writeSharedFolder(folder.path, ops) : { conflicts: [] };
+  if (stale()) return void queued.add(ref);
   if (conflicts.length) {
     schedule(profileId, key, CONFLICT_RETRY_MS);
     return setFolderSync(profileId, key, { state: "syncing", error: null });
@@ -149,7 +153,7 @@ export function startSharedFolders() {
     for (const { profileId, key, folder } of boundFolders()) if (paths.includes(folder.path)) schedule(profileId, key, REMOTE_SETTLE_MS);
   });
   useBrowser.subscribe((s, prev) => {
-    if (s.tabs === prev.tabs && s.groups === prev.groups && s.windows === prev.windows) return;
+    if (s.tabs === prev.tabs && s.groups === prev.groups && s.windows === prev.windows && s.ui.focusOrder === prev.ui.focusOrder) return;
     if (!boundFolders().length) return;
     clearTimeout(checkTimer);
     checkTimer = setTimeout(checkLocal, LOCAL_SETTLE_MS);

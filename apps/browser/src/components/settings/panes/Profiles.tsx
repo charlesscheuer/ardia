@@ -246,12 +246,27 @@ export function ProfileDetailsPane({ profileId }: { profileId: string }) {
   const [name, setName] = useState(savedName);
   const typed = useRef(name);
   typed.current = name;
-  useEffect(() => setName(savedName), [savedName]);
-  useEffect(() => () => void commitProfileName(profileId, typed.current), [profileId]);
+  const edited = useRef(false);
+  useEffect(() => {
+    if (!edited.current) setName(savedName);
+  }, [savedName]);
+  useEffect(
+    () => () => {
+      if (edited.current) commitProfileName(profileId, typed.current);
+    },
+    [profileId],
+  );
   const badge = useRef<View>(null);
   const changeButton = useRef<View>(null);
   if (!profile) return null;
-  const commitName = () => setName(commitProfileName(profileId, name) ? name.trim() : profile.name);
+  const editName = (text: string) => {
+    edited.current = true;
+    setName(text);
+  };
+  const commitName = () => {
+    edited.current = false;
+    setName(commitProfileName(profileId, name) ? name.trim() : profile.name);
+  };
   const sharing = shared.length > 1;
   const pickIcon = (anchor: View | null) => void openProfileIconPicker(profileId, SETTINGS_WINDOW_ID, "settings", anchor);
 
@@ -271,7 +286,7 @@ export function ProfileDetailsPane({ profileId }: { profileId: string }) {
       <SectionHeader title="Profile" />
       <Group>
         <Row title="Name">
-          <TextField value={name} onChangeText={setName} onSubmit={commitName} onBlur={commitName} width={220} />
+          <TextField value={name} onChangeText={editName} onSubmit={commitName} onBlur={commitName} width={220} />
         </Row>
         <Row title="Icon" description={iconTitle(profile.icon)}>
           <View ref={changeButton} collapsable={false}>

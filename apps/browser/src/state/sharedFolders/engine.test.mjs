@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { shellNativeModules } from "../../test-native/shell.ts";
+
+const shares = [];
 
 const webloc = (url) => `<plist><dict><key>URL</key><string>${url}</string></dict></plist>`;
 const events = [];
@@ -8,6 +11,7 @@ const landed = new Map();
 const pending = new Map();
 const failing = new Set();
 const unstageable = new Set();
+let duringRead = async () => {};
 let listing = { exists: true, root: { entries: [], manifest: null, manifestPending: false } };
 
 function land(name) {
@@ -21,6 +25,7 @@ function land(name) {
 }
 
 globalThis.acTestNativeModules = {
+  ArdiaApp: { ...shellNativeModules.ArdiaApp, share: async (url) => void shares.push(url) },
   ArdiaDocuments: {
     readDocument: (name) => pending.get(name) ?? landed.get(name) ?? null,
     writeDocument: (name, contents) => {
@@ -41,7 +46,11 @@ globalThis.acTestNativeModules = {
   },
   ArdiaSharedFolders: {
     location: () => ({ path: "/scratch/Ardia Shared", iCloudAvailable: true, iCloudPath: "/scratch" }),
-    read: async () => listing,
+    read: async () => {
+      const now = listing;
+      await duringRead();
+      return now;
+    },
     apply: async (_path, ops) => (events.push(`apply ${JSON.parse(ops).length}`), files.set("ops", JSON.parse(ops)), { conflicts: [] }),
     create: async (parent, name) => `${parent}/${name}`,
     watch: () => {},
@@ -53,7 +62,8 @@ const { startPersistence } = await import("../session/persist.ts");
 const { useBrowser } = await import("../browser/store.ts");
 const { pinKeyOf } = await import("../browser/model.ts");
 const { syncFolderNow } = await import("./engine.ts");
-const { bindFolder, sharedFolderOf, useSharedFolders } = await import("./store.ts");
+const { bindFolder, sharedFolderOf, unbindFolder, useSharedFolders } = await import("./store.ts");
+const { shareFolder } = await import("./actions.ts");
 
 const S = () => useBrowser.getState();
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -65,6 +75,7 @@ function fresh() {
   failing.clear();
   unstageable.clear();
   listing = { exists: true, root: { entries: [], manifest: null, manifestPending: false } };
+  duringRead = async () => {};
 }
 
 function setup() {
@@ -124,4 +135,38 @@ test("a session snapshot that never got staged stops the round too, and is stage
   const imported = sharedFolderOf(profileId, key).base.find((b) => b.url === "https://staged.example/")?.key;
   assert.ok(imported, "the next round goes through");
   assert.ok(landed.get("session.json").includes(imported), "the session that landed holds the tab");
+});
+
+test("a folder unbound and bound again while its round reads changes neither binding", async () => {
+  const { profileId, key } = setup();
+  await wait(900);
+  listing = { exists: true, root: { entries: [{ kind: "link", file: "Old.webloc", text: webloc("https://old-folder.example/") }], manifest: null, manifestPending: false } };
+  duringRead = async () => {
+    unbindFolder(profileId, key);
+    bindFolder(profileId, key, "/scratch/Ardia Shared/Elsewhere");
+  };
+  await syncFolderNow(profileId, key);
+  duringRead = async () => {};
+  assert.deepEqual(events.filter((e) => e.startsWith("apply")), [], "nothing is written for the old binding");
+  assert.equal(sharedFolderOf(profileId, key).path, "/scratch/Ardia Shared/Elsewhere");
+  assert.deepEqual(sharedFolderOf(profileId, key).base, [], "the new binding's base is untouched");
+  assert.ok(!Object.values(S().tabs).some((t) => t.pinnedUrl === "https://old-folder.example/"), "the old folder's links aren't imported");
+});
+
+test("Share Folder doesn't open the share sheet when the folder's first sync failed", async () => {
+  fresh();
+  const w = S().createWindow({ url: "https://home3.example/" });
+  const t = S().newTab(w, { url: "https://three.example/", background: true });
+  const g = S().groupTabs([t], { pinned: true, name: "Third" });
+  await wait(900);
+  shares.length = 0;
+  const read = globalThis.acTestNativeModules.ArdiaSharedFolders.read;
+  globalThis.acTestNativeModules.ArdiaSharedFolders.read = async () => {
+    throw new Error("disk went away");
+  };
+  await shareFolder(w, g);
+  globalThis.acTestNativeModules.ArdiaSharedFolders.read = read;
+  assert.deepEqual(shares, [], "no share sheet for a folder whose links weren't written");
+  await shareFolder(w, g);
+  assert.equal(shares.length, 1, "once the folder syncs, Share Folder opens the sheet");
 });

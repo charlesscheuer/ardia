@@ -12,7 +12,8 @@ Arc had shared folders; Dia has none, so this is an Ardia extra (`docs/dia-featu
 
 - **Share Folder…** on a pinned folder's context menu. A folder that isn't shared yet becomes one: Ardia creates
   `Ardia Shared/<name>` (`<name> 2` if taken), writes its links, then opens the macOS share picker on the directory
-  (the same picker as Share for a tab, `SharePicker.swift`, given the directory's `file://` URL). For a directory in
+  (the same picker as Share for a tab, `SharePicker.swift`, given the directory's `file://` URL), once a sync round
+  has written its links; otherwise it says why and opens nothing. For a directory in
   iCloud Drive, macOS offers Collaborate there, which invites any Apple ID. A shared folder's menu also has its
   sync state (disabled row), Show in Finder and Stop Syncing Folder.
 - **Add Shared Folder…** in the sidebar's menu (next to New Group and New Live Folder) opens a folder panel on

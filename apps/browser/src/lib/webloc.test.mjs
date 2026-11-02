@@ -36,3 +36,8 @@ test("a link's identity rides in its webloc and doesn't disturb the URL", async 
   assert.equal(weblocLinkId(text), "lk1");
   assert.equal(weblocLinkId(weblocText("https://a.example/")), null);
 });
+
+test("a URL inside an XML comment is not the link", () => {
+  const text = `<plist version="1.0"><dict><!-- <key>URL</key><string>https://evil.example/</string> --><key>URL</key><string>https://real.example/</string></dict></plist>`;
+  assert.equal(parseWebloc(text), "https://real.example/");
+});

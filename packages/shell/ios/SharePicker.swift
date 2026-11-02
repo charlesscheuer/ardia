@@ -7,7 +7,11 @@ enum SharePicker {
 
   static func show(url: String, title: String?, windowId: String?, anchor: [Double]?, done: @escaping () -> Void) {
     let window = windowId.flatMap { WindowManager.shared.window($0) } ?? NSApp.keyWindow
-    guard let link = URL(string: url), let window, let view = window.contentView else { return done() }
+    guard let link = URL(string: url) else { return done() }
+    guard let window, let view = window.contentView else {
+      ArdiaWebView.removeSharedImage(link)
+      return done()
+    }
     var rect = NSRect(x: view.bounds.midX - 1, y: view.isFlipped ? 40 : view.bounds.maxY - 42, width: 2, height: 2)
     var edge = NSRectEdge.minY
     if let a = anchor, a.count == 4 {

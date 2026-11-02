@@ -23,7 +23,18 @@ const DOC_VERSION = 1;
 const DOC_MIGRATIONS: Migrations = { 0: unchanged };
 const SAVE_DELAY_MS = 400;
 
-const validFolder = (f: unknown): f is SharedFolder => isFields(f) && typeof f.path === "string" && !!f.path && Array.isArray(f.base);
+const text = (v: unknown): v is string => typeof v === "string" && !!v;
+
+function cleanBase(list: unknown[]): BaseEntry[] {
+  return list.flatMap((e): BaseEntry[] => {
+    if (!isFields(e) || !text(e.key) || !text(e.file) || typeof e.name !== "string") return [];
+    if (e.kind === "dir") return [{ kind: "dir", key: e.key, file: e.file, name: e.name, children: cleanBase(Array.isArray(e.children) ? e.children : []) }];
+    if (e.kind !== "link" || !text(e.url)) return [];
+    return [{ kind: "link", key: e.key, file: e.file, name: e.name, url: e.url, id: text(e.id) ? e.id : null }];
+  });
+}
+
+const validFolder = (f: unknown): f is SharedFolder => isFields(f) && text(f.path) && Array.isArray(f.base);
 
 function load(): SharedFoldersState["folders"] {
   const doc = parseSaved(readDocument(DOC), DOC_VERSION, DOC_MIGRATIONS);
@@ -31,7 +42,9 @@ function load(): SharedFoldersState["folders"] {
   const out: SharedFoldersState["folders"] = {};
   for (const [profileId, byKey] of Object.entries(doc.folders)) {
     if (!isFields(byKey)) continue;
-    const kept = Object.fromEntries(Object.entries(byKey).filter(([, f]) => validFolder(f))) as Record<string, SharedFolder>;
+    const kept = Object.fromEntries(
+      Object.entries(byKey).flatMap(([key, f]) => (validFolder(f) ? [[key, { path: f.path, base: cleanBase(f.base), addedAt: typeof f.addedAt === "number" ? f.addedAt : 0 }]] : [])),
+    ) as Record<string, SharedFolder>;
     if (Object.keys(kept).length) out[profileId] = kept;
   }
   return out;
