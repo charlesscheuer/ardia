@@ -31,6 +31,7 @@ import { curve } from "../ui/motion";
 import { entryKey, parseEntry } from "../../state/sidebar/entryKey";
 import { LiveFolderBlock } from "./LiveFolderBlock";
 import { tailKey, type RowSection } from "./dragModel";
+import { SharedFolderMark } from "./SharedFolderMark";
 
 const BOX_FADE = curve.fade;
 const NO_GROUPS: ReadonlySet<string> = new Set();
@@ -217,6 +218,7 @@ function GroupHeader({ groupId, windowId, collapsed, open }: { groupId: string; 
                     </Text>
                     <FadeLabel text={label} fontSize={font.body.fontSize} weight="medium" color={tokens.groupTitle} style={{ position: "absolute", left: 0, right: 0, top: 0, height: TAB_ROW.titleHeight }} />
                   </View>
+                  <SharedFolderMark groupId={groupId} />
                   <Animated.View
                     style={{
                       width: 10,

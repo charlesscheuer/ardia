@@ -1,7 +1,6 @@
 import { Box, Button, ContextMenuArea, Divider, PopUp, radius, space, Symbol, Text, TextField, Toggle, useHover } from "../../ui";
 import { hapticTick } from "../../../state/app/system";
-import { chooseFromMenu } from "../../../state/app/menuChoice";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Animated, PanResponder, Pressable, StyleSheet, View } from "react-native";
 import { useShallow } from "zustand/react/shallow";
 import { deleteProfile } from "../../../state/browser/actions";
@@ -9,15 +8,15 @@ import { requestCreateProfile } from "../../../state/profiles/createProfileReque
 import { hex, profileAccent, useTheme } from "../../ui/theme";
 import { useProfileDataStats, useProfileOrder, useProfileRecords } from "../../../state/profiles/hooks";
 import { currentProfileOrder, currentProfiles } from "../../../state/browser/current";
-import { reorderProfiles, setDefaultProfile, updateProfile } from "../../../state/profiles/actions";
+import { commitProfileName, reorderProfiles, setDefaultProfile } from "../../../state/profiles/actions";
+import { openProfileIconPicker } from "../../../state/profiles/iconPicker";
 import { updateSettings } from "../../../state/settings/actions";
 import { useProfile, useProfiles, useSettings } from "../../../state/browser/hooks";
 import { sharingProfiles } from "../../../state/profiles/profiles";
-import type { Profile } from "../../../state/browser/types";
 import { ClearDataDialog } from "../../pages/ClearDataDialog";
 import { Group, PaneIntro, Row, SectionHeader } from "../Form";
 import { ColorStack } from "../../profiles/CreateProfile";
-import { iconMenuItems, PROFILE_SYMBOLS, ProfileBadge } from "../../profiles/ProfileIcons";
+import { PROFILE_SYMBOLS, ProfileBadge } from "../../profiles/ProfileIcons";
 import { iconSymbol } from "../../../lib/customIcon";
 import { closeSettingsSheet, showSettingsSheet } from "../../../state/settings/sheet";
 import { ThemeSection } from "../ThemeEditor";
@@ -163,6 +162,7 @@ function ProfileRow({
   const shared = useSharedWith(profileId);
   const names = useProfileRecords(useShallow((profiles) => shared.filter((id) => id !== profileId).map((id) => profiles[id]?.name ?? "")));
   const { hovered, hoverProps } = useHover();
+  const badge = useRef<View>(null);
   const pan = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 3,
@@ -176,7 +176,7 @@ function ProfileRow({
   if (!profile) return null;
 
   const description = [isDefault ? "Default" : null, names.length ? `Shares data with ${listOf(names)}` : null].filter(Boolean).join(" · ");
-  const openMenu = () => openProfileItemMenu(profileId, "settings", SETTINGS_WINDOW_ID);
+  const openMenu = () => openProfileItemMenu(profileId, "settings", SETTINGS_WINDOW_ID, badge.current);
 
   return (
     <Animated.View
@@ -208,7 +208,9 @@ function ProfileRow({
               <View tooltip="Drag to reorder">
                 <Symbol name="line.3.horizontal" size={11} color={theme.textTertiary} style={{ width: 14, height: 14 }} />
               </View>
-              <ProfileBadge profile={profile} />
+              <View ref={badge} collapsable={false}>
+                <ProfileBadge profile={profile} />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text>{profile.name}</Text>
                 {description ? (
@@ -240,22 +242,41 @@ export function ProfileDetailsPane({ profileId }: { profileId: string }) {
   const sharedNames = useProfileRecords(useShallow((profiles) => shared.map((id) => profiles[id]?.name ?? "")));
   const sharedColors = useProfileRecords(useShallow((profiles) => shared.map((id) => profileAccent(profiles[id]))));
   const stats = useProfileDataStats(profileId);
-  const [name, setName] = useState(profile?.name ?? "");
+  const savedName = profile?.name ?? "";
+  const [name, setName] = useState(savedName);
+  const typed = useRef(name);
+  typed.current = name;
+  const edited = useRef(false);
+  useEffect(() => {
+    if (!edited.current) setName(savedName);
+  }, [savedName]);
+  useEffect(
+    () => () => {
+      if (edited.current) commitProfileName(profileId, typed.current);
+    },
+    [profileId],
+  );
+  const badge = useRef<View>(null);
+  const changeButton = useRef<View>(null);
   if (!profile) return null;
-  const update = (patch: Partial<Pick<Profile, "name" | "icon">>) => updateProfile(profileId, patch);
-  const commitName = () => (name.trim() ? update({ name: name.trim() }) : setName(profile.name));
-  const sharing = shared.length > 1;
-
-  const pickIcon = async () => {
-    const choice = await chooseFromMenu(iconMenuItems(profile.icon));
-    if (choice && typeof choice === "object") update({ icon: choice.icon });
+  const editName = (text: string) => {
+    edited.current = true;
+    setName(text);
   };
+  const commitName = () => {
+    edited.current = false;
+    setName(commitProfileName(profileId, name) ? name.trim() : profile.name);
+  };
+  const sharing = shared.length > 1;
+  const pickIcon = (anchor: View | null) => void openProfileIconPicker(profileId, SETTINGS_WINDOW_ID, "settings", anchor);
 
   return (
     <View>
       <Box gap="ml" style={DETAILS_HEAD}>
-        <Pressable onPress={() => void pickIcon()} tooltip="Change Icon">
-          <ProfileBadge profile={profile} size={64} />
+        <Pressable onPress={() => pickIcon(badge.current)} tooltip="Change Icon">
+          <View ref={badge} collapsable={false}>
+            <ProfileBadge profile={profile} size={64} />
+          </View>
         </Pressable>
         <Text size="small" tone="textSecondary">
           {stats}
@@ -265,10 +286,12 @@ export function ProfileDetailsPane({ profileId }: { profileId: string }) {
       <SectionHeader title="Profile" />
       <Group>
         <Row title="Name">
-          <TextField value={name} onChangeText={setName} onSubmit={commitName} onBlur={commitName} width={220} />
+          <TextField value={name} onChangeText={editName} onSubmit={commitName} onBlur={commitName} width={220} />
         </Row>
         <Row title="Icon" description={iconTitle(profile.icon)}>
-          <Button title="Change…" onPress={() => void pickIcon()} />
+          <View ref={changeButton} collapsable={false}>
+            <Button title="Change…" onPress={() => pickIcon(changeButton.current)} />
+          </View>
         </Row>
       </Group>
 

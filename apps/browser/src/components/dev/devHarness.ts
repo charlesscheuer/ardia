@@ -131,6 +131,9 @@ export function startDevHarness() {
     get live(): { store: typeof import("../../state/live/store"); engine: typeof import("../../state/live/engine") } {
       return { store: require("../../state/live/store"), engine: require("../../state/live/engine") };
     },
+    get sharedFolders(): typeof import("../../state/sharedFolders/store") & typeof import("../../state/sharedFolders/engine") & typeof import("../../state/sharedFolders/actions") {
+      return { ...require("../../state/sharedFolders/store"), ...require("../../state/sharedFolders/engine"), ...require("../../state/sharedFolders/actions") };
+    },
   };
   (globalThis as { ac?: typeof ac }).ac = ac;
   watchDevEval(readDocument, __DEV__ ? 50 : 250, (id, source) => {

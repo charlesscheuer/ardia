@@ -101,6 +101,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface ArdiaWebView (ContextMenu)
 + (void)setSearchEngineName:(NSString *)name;
++ (void)removeSharedImage:(NSURL *)file NS_SWIFT_NAME(removeSharedImage(_:));
++ (void)removeSharedImages;
 @end
 
 @interface ArdiaWebView (PictureInPicture)

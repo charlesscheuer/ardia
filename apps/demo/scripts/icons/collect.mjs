@@ -5,7 +5,6 @@ import { REPO } from "./paths.mjs";
 const ROOTS = ["apps/browser/src"];
 const LITERAL = /(["'`])([a-z0-9]+(?:\.[a-z0-9]+)*)\1/g;
 const SYMBOL_CONTEXT = /icon|symbol|glyph|chevron|name=/i;
-const SYMBOL_FILES = /profiles\/ProfileIcons\.tsx$/;
 const ICON_KEYS = /^(icon|icons|symbol|name|glyph|chevron|fallback)$/i;
 const KEYED = /([A-Za-z_$][\w$]*)\??\s*[:=]\s*\{?\s*(?:(["'`])[^"'`]*\2\s*\|\s*)*$/;
 const COMPARED = /(===|!==|==|!=|case)\s*$/;
@@ -24,10 +23,33 @@ function sourceFiles() {
   return files;
 }
 
-function pickerSymbols(source) {
-  const start = source.indexOf("const SYMBOLS");
-  if (start < 0) return [];
-  return [...source.slice(start, source.indexOf("];", start)).matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+const SYMBOL_LIST = /const ([A-Za-z_]*(?:SYMBOLS|ICONS|Icons))\b[^=]*=\s*/g;
+
+function closingBracket(source, open) {
+  let depth = 0;
+  for (let i = open; i < source.length; i++) {
+    const c = source[i];
+    if (c === '"' || c === "'" || c === "`") {
+      i = source.indexOf(c, i + 1);
+      if (i < 0) return source.length;
+    } else if (c === "[" || c === "{" || c === "(") depth++;
+    else if (c === "]" || c === "}" || c === ")") if (--depth === 0) return i;
+  }
+  return source.length;
+}
+
+function symbolLists(source, vocabulary) {
+  const lists = [];
+  for (const match of source.matchAll(SYMBOL_LIST)) {
+    const open = match.index + match[0].length;
+    const bracketed = source[open] === "[" || source[open] === "{";
+    const statementEnd = source.slice(open).search(/;\s*\n/);
+    const end = bracketed ? closingBracket(source, open) + 1 : statementEnd < 0 ? source.length : open + statementEnd;
+    const body = source.slice(open, end);
+    const names = [...body.matchAll(/(["'])([^"'\n]+)\1/g)].map((m) => m[2]).filter((name) => vocabulary.has(name));
+    lists.push({ list: match[1], names });
+  }
+  return lists;
 }
 
 export function collectAppSymbols(vocabulary) {
@@ -36,10 +58,10 @@ export function collectAppSymbols(vocabulary) {
   for (const file of sourceFiles()) {
     const source = readFileSync(file, "utf8");
     const relative = file.slice(REPO.length);
-    if (relative.endsWith("IconPicker.tsx")) for (const name of pickerSymbols(source)) add(name, `${relative} SYMBOLS`);
+    for (const { list, names } of symbolLists(source, vocabulary)) for (const name of names) add(name, `${relative} ${list}`);
     source.split("\n").forEach((rawLine, index) => {
       const line = rawLine.replace(/hint\([^)]*\)/g, "").replace(/modifiers:\s*\[[^\]]*\]/g, "").replace(/keywords:\s*\[[^\]]*\]/g, "");
-      const symbolish = SYMBOL_CONTEXT.test(line) || SYMBOL_FILES.test(relative);
+      const symbolish = SYMBOL_CONTEXT.test(line);
       if (!symbolish || (NOT_A_SYMBOL.test(line) && !/symbol:|icon:|name=|icons=/.test(line))) return;
       for (const match of line.matchAll(LITERAL)) {
         if (!vocabulary.has(match[2])) continue;
