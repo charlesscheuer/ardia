@@ -335,8 +335,16 @@ public struct SharedFolderDirectory {
     }
     guard rmdir(url.path) != 0 else { return }
     let code = errno
-    if let order, Self.kind(of: manifest.path) == .missing { try? order.write(to: manifest, options: .atomic) }
+    if let order { restoreExclusively(order, at: manifest) }
     if code != ENOTEMPTY, code != ENOENT, code != EEXIST { throw NSError(domain: NSPOSIXErrorDomain, code: Int(code)) }
+  }
+
+  private func restoreExclusively(_ data: Data, at url: URL) {
+    guard let staging = try? fileManager.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: url.deletingLastPathComponent(), create: true) else { return }
+    defer { try? fileManager.removeItem(at: staging) }
+    let temporary = staging.appendingPathComponent(url.lastPathComponent)
+    guard (try? data.write(to: temporary)) != nil else { return }
+    _ = renamex_np(temporary.path, url.path, UInt32(RENAME_EXCL))
   }
 
   private func coordinate(writing url: URL, options: NSFileCoordinator.WritingOptions, _ body: (URL) throws -> Void) throws {
