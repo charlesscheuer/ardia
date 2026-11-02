@@ -54,6 +54,11 @@ function schedule(profileId: string, key: string, delay: number) {
   timers.set(ref, setTimeout(fire, delay));
 }
 
+export async function syncFolderAfterNow(profileId: string, key: string): Promise<void> {
+  await running.get(folderRef(profileId, key));
+  await syncFolderNow(profileId, key);
+}
+
 export function syncFolderNow(profileId: string, key: string): Promise<void> {
   const ref = folderRef(profileId, key);
   const busy = running.get(ref);

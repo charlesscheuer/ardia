@@ -26,7 +26,7 @@ function land(name) {
 }
 
 globalThis.acTestNativeModules = {
-  ArdiaApp: { ...shellNativeModules.ArdiaApp, share: async (url) => void shares.push(url) },
+  ArdiaApp: { ...shellNativeModules.ArdiaApp, share: async (url) => void (shares.push(url), events.push("share")) },
   ArdiaDocuments: {
     readDocument: (name) => pending.get(name) ?? landed.get(name) ?? null,
     writeDocument: (name, contents) => {
@@ -48,6 +48,7 @@ globalThis.acTestNativeModules = {
   ArdiaSharedFolders: {
     location: () => ({ path: "/scratch/Ardia Shared", iCloudAvailable: true, iCloudPath: "/scratch" }),
     read: async (path) => {
+      events.push(`read ${path}`);
       const now = byPath.get(path) ?? listing;
       await duringRead();
       return now;
@@ -187,4 +188,52 @@ test("Share Folder doesn't open the share sheet when the folder's first sync fai
   assert.deepEqual(shares, [], "no share sheet for a folder whose links weren't written");
   await shareFolder(w, g);
   assert.equal(shares.length, 1, "once the folder syncs, Share Folder opens the sheet");
+});
+
+test("unbinding and binding the same path again during a read still counts as a new binding", async () => {
+  const { profileId, key } = setup();
+  await wait(900);
+  const path = "/scratch/Ardia Shared/Team";
+  listing = { exists: true, root: { entries: [{ kind: "link", file: "Before.webloc", text: webloc("https://before-rebind.example/") }], manifest: null, manifestPending: false } };
+  let replaced;
+  duringRead = async () => {
+    duringRead = async () => {};
+    unbindFolder(profileId, key);
+    bindFolder(profileId, key, path);
+    replaced = sharedFolderOf(profileId, key);
+  };
+  await syncFolderNow(profileId, key);
+  assert.equal(sharedFolderOf(profileId, key), replaced, "the round never saved a base over the new binding");
+  assert.deepEqual(replaced.base, []);
+  assert.deepEqual(events.filter((e) => e.startsWith("apply")), [], "nothing was written for the old binding's round");
+  assert.ok(!Object.values(S().tabs).some((t) => t.pinnedUrl === "https://before-rebind.example/"), "the stale read wasn't applied");
+});
+
+test("Share Folder waits for a round that starts after it, not one already running", async () => {
+  fresh();
+  const w = S().createWindow({ url: "https://home4.example/" });
+  const t = S().newTab(w, { url: "https://four.example/", background: true });
+  const g = S().groupTabs([t], { pinned: true, name: "Fourth" });
+  const profileId = S().groups[g].profileId;
+  const key = pinKeyOf(S().groups[g]);
+  bindFolder(profileId, key, "/scratch/Ardia Shared/Fourth");
+  await wait(900);
+  await syncFolderNow(profileId, key);
+  let release;
+  const gate = new Promise((r) => (release = r));
+  duringRead = async () => {
+    duringRead = async () => {};
+    await gate;
+  };
+  events.length = 0;
+  const running = syncFolderNow(profileId, key);
+  await wait(20);
+  const sharing = shareFolder(w, g);
+  await wait(20);
+  release();
+  await Promise.all([running, sharing]);
+  const reads = events.filter((e) => e.startsWith("read "));
+  const shared = events.indexOf("share");
+  assert.ok(shared >= 0, "the sheet opened");
+  assert.equal(events.slice(0, shared).filter((e) => e.startsWith("read ")).length, 2, `a fresh round ran before the sheet (${reads.length} reads)`);
 });

@@ -12,7 +12,7 @@ import { ASLEEP } from "../tabs/pageSession";
 import { isRegularWindow } from "../windows/small";
 import { measureRow } from "../sidebar/sidebarUi";
 import { EMPTY_FOLDER_URL } from "./applyFolder";
-import { syncFolderNow } from "./engine";
+import { syncFolderAfterNow, syncFolderNow } from "./engine";
 import { bindFolder, boundFolders, folderRef, sharedFolderOf, unbindFolder, useSharedFolders } from "./store";
 import { canShareGroup, sharedFolderOfGroup } from "./removal";
 import { showToast } from "../app/toasts";
@@ -89,7 +89,7 @@ export async function shareFolder(windowId: string, groupId: string) {
       const path = await createSharedFolder(parent, groupLabel(s, g) || "Shared Folder");
       bindFolder(g.profileId, key, path);
     }
-    await syncFolderNow(g.profileId, key);
+    await syncFolderAfterNow(g.profileId, key);
     folder = sharedFolderOf(g.profileId, key);
     if (!folder) return;
     const state = useSharedFolders.getState().sync[folderRef(g.profileId, key)]?.state;
