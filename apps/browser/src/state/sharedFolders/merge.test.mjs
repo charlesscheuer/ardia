@@ -516,3 +516,45 @@ test("a link still downloading is neither written nor renamed, keeps its identit
   assert.deepEqual(files(fs), ["Renamed.webloc"]);
   assert.equal(linkKeys(a.local)[t1], "Renamed=https://a.example/");
 });
+
+test("a Finder copy of a subfolder sorting first doesn't take the original's links", () => {
+  const fs = dir();
+  const a = mac([{ kind: "dir", key: "g1", name: "Zeta", children: [link("t1", "Doc", "https://doc.example/")] }]);
+  cycle(a, fs);
+  const zeta = fs.files.get("Zeta").dir;
+  fs.files.set("Copy of Zeta", { dir: dir({ "Doc.webloc": { ...zeta.files.get("Doc.webloc") } }) });
+  a.local = [{ ...a.local[0], children: [link("t1", "Doc", "https://doc-edited.example/")] }];
+  cycle(a, fs);
+  assert.equal(zeta.files.get("Doc.webloc").url, "https://doc-edited.example/");
+  assert.equal(fs.files.get("Copy of Zeta").dir.files.get("Doc.webloc").url, "https://doc.example/");
+});
+
+test("a synced link evicted to an iCloud placeholder counts as waiting", () => {
+  const fs = dir();
+  const a = mac([link("t1", "A", "https://a.example/")]);
+  cycle(a, fs);
+  fs.files.set("A.webloc", { held: true });
+  assert.equal(mergeFolder(a.base, a.local, read(fs)).waiting, 1);
+});
+
+test("a local URL edit to a link still downloading waits for the file, then is written", () => {
+  const fs = dir();
+  const a = mac([link("t1", "A", "https://a.example/")]);
+  cycle(a, fs);
+  const arrived = fs.files.get("A.webloc");
+  fs.files.set("A.webloc", { held: true });
+  a.local = [link("t1", "A", "https://a2.example/")];
+  const { conflicts, ops } = cycle(a, fs);
+  assert.deepEqual(ops.filter((o) => o.path === "A.webloc"), [], "the placeholder isn't touched");
+  assert.deepEqual(conflicts, []);
+  assert.equal(a.base[0].url, "https://a.example/", "the base keeps the old URL");
+  fs.files.set("A.webloc", arrived);
+  cycle(a, fs);
+  assert.equal(fs.files.get("A.webloc").url, "https://a2.example/");
+});
+
+test("a URL with no host isn't a link", async () => {
+  const { isShareableUrl } = await import("./remote.ts");
+  for (const url of ["https://?q=1", "https://#x", "https://:443", "ftp://a.example/"]) assert.equal(isShareableUrl(url), false, url);
+  assert.equal(isShareableUrl("http://a.example:8080/x"), true);
+});

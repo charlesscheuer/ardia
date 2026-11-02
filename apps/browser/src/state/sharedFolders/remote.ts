@@ -2,7 +2,14 @@ import type { SharedListingLevel } from "../../platform/sharedFolders";
 import { parseWebloc, weblocLinkId } from "../../lib/webloc";
 import { manifestIsNewer, parseManifest, type RemoteEntry, type RemoteLevel } from "./tree";
 
-export const isShareableUrl = (url: string) => /^https?:\/\/[^\s/]/i.test(url);
+export function isShareableUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return (parsed.protocol === "http:" || parsed.protocol === "https:") && parsed.hostname.length > 0;
+  } catch {
+    return false;
+  }
+}
 
 export function remoteLevel(level: SharedListingLevel): RemoteLevel {
   if (level.error) throw new Error(level.error);

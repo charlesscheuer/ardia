@@ -127,6 +127,25 @@ void RemoveIfOwnerGone(NSString *owner) {
   close(fd);
 }
 
+constexpr NSUInteger kKeptShareFolders = 10;
+
+NSString *gOwnFolder = nil;
+
+void KeepNewestShares(NSString *owner, NSUInteger kept) {
+  NSMutableArray<NSString *> *shares = [NSMutableArray array];
+  NSMutableDictionary<NSString *, NSNumber *> *made = [NSMutableDictionary dictionary];
+  for (NSString *name in EntriesOf(owner)) {
+    struct stat found;
+    NSString *path = [owner stringByAppendingPathComponent:name];
+    if (!IsUUID(name) || lstat(path.fileSystemRepresentation, &found) != 0) continue;
+    [shares addObject:path];
+    made[path] = @(found.st_birthtimespec.tv_sec * 1e9 + found.st_birthtimespec.tv_nsec);
+  }
+  if (shares.count <= kept) return;
+  [shares sortUsingComparator:^NSComparisonResult(NSString *a, NSString *b) { return [made[a] compare:made[b]]; }];
+  for (NSUInteger i = 0; i < shares.count - kept; i++) RemoveShareFolder(shares[i]);
+}
+
 NSString *OwnFolder() {
   static NSString *own;
   static dispatch_once_t once;
@@ -136,6 +155,7 @@ NSString *OwnFolder() {
     if (!MakePrivateDirectory(root) || !MakePrivateDirectory(folder)) return;
     NSString *lock = [folder stringByAppendingPathComponent:@".lock"];
     if (open(lock.fileSystemRepresentation, O_RDONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC | O_EXLOCK | O_NONBLOCK, 0600) >= 0) own = folder;
+    gOwnFolder = own;
   });
   return own;
 }
@@ -148,8 +168,10 @@ NSURL *SharedImageFile(NSData *image, NSString *mimeType, NSString *source) {
   if (!name.length || [name isEqualToString:@"/"]) name = @"Image";
   if (name.length > 80) name = [name substringToIndex:[name rangeOfComposedCharacterSequenceAtIndex:80].location];
   NSString *own = OwnFolder();
+  if (!own) return nil;
+  KeepNewestShares(own, kKeptShareFolders - 1);
   NSString *folder = [own stringByAppendingPathComponent:NSUUID.UUID.UUIDString];
-  if (!own || !MakePrivateDirectory(folder)) return nil;
+  if (!MakePrivateDirectory(folder)) return nil;
   NSURL *file = [NSURL fileURLWithPath:[folder stringByAppendingPathComponent:[name stringByAppendingPathExtension:extensions[mimeType.lowercaseString] ?: @"jpg"]]];
   if (![image writeToURL:file options:NSDataWritingAtomic error:nil]) {
     RemoveShareFolder(folder);
@@ -183,9 +205,10 @@ NSDictionary *FindMenuItem(NSArray *items, NSString *label) {
 }
 
 + (void)removeSharedImage:(NSURL *)file {
-  NSString *folder = file.fileURL ? file.path.stringByStandardizingPath.stringByDeletingLastPathComponent : nil;
-  NSString *own = OwnFolder();
-  if (folder && own && [folder.stringByDeletingLastPathComponent isEqualToString:own]) RemoveShareFolder(folder);
+  NSString *own = gOwnFolder;
+  if (!file.fileURL || !own) return;
+  NSString *folder = file.path.stringByStandardizingPath.stringByDeletingLastPathComponent;
+  if ([folder.stringByDeletingLastPathComponent isEqualToString:own]) RemoveShareFolder(folder);
 }
 
 + (void)removeSharedImages {

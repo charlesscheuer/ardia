@@ -39,7 +39,7 @@ function mapDirs(base: BaseEntry[], remote: RemoteLevel | null, dirs: Map<BaseDi
     let score = 0;
     for (const r of offered) {
       const s = used.has(r) ? 0 : shared(baseIdsOf.get(b)!, remoteIdsOf.get(r)!);
-      if (s > score) (best = r), (score = s);
+      if (s > score || (s > 0 && s === score && r.file === b.file)) (best = r), (score = s);
     }
     pair(b, best);
   }
@@ -63,7 +63,7 @@ export function identities(base: BaseEntry[], local: LocalEntry[], remote: Remot
   for (const [entries, level] of levels) {
     for (const b of entries) {
       if (b.kind !== "link" || !b.id || baseOwner.has(b.id)) continue;
-      const everywhere = all.filter((x) => x.id === b.id && !arriving.has(x) && ![...ownerOf.values()].includes(x));
+      const everywhere = all.filter((x) => x.id === b.id);
       const here = everywhere.filter((x) => levelOf.get(x) === level);
       const r = here.find((x) => x.file === b.file) ?? everywhere.find((x) => x.file === b.file) ?? preferred(b, here) ?? preferred(b, everywhere);
       if (!r) continue;

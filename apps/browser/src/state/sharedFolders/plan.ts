@@ -74,7 +74,7 @@ function planLevel(prefix: string, level: TargetLevel, ops: SharedFolderOp[], pa
     if (id && pass.identityOnly) pass.ids.set(e.key!, id);
   }
   for (const e of entries) {
-    if (e.kind !== "link" || !e.file || (!e.write && (held(e) || (ids.get(e) ?? null) === (e.fileId ?? null)))) continue;
+    if (e.kind !== "link" || !e.file || held(e) || (!e.write && (ids.get(e) ?? null) === (e.fileId ?? null))) continue;
     ops.push({ op: "write", path: `${prefix}${e.file}`, text: weblocText(e.url, ids.get(e) ?? null), create: false, expect: e.expect });
   }
   if (pass.identityOnly) {
@@ -89,7 +89,7 @@ function planLevel(prefix: string, level: TargetLevel, ops: SharedFolderOp[], pa
     const file = finals.get(e)!;
     if (e.kind === "link") {
       if (!e.file) ops.push({ op: "write", path: `${prefix}${file}`, text: weblocText(e.url, ids.get(e) ?? null), create: true, expect: null });
-      base.push({ kind: "link", key: e.key!, file, name: e.heldName ?? e.name, url: e.url, id: ids.get(e) ?? null });
+      base.push({ kind: "link", key: e.key!, file, name: e.heldName ?? e.name, url: held(e) ? (e.expect ?? e.url) : e.url, id: ids.get(e) ?? null });
     } else {
       if (!e.file) ops.push({ op: "mkdir", path: `${prefix}${file}` });
       base.push({ kind: "dir", key: e.key!, file, name: e.name, children: planLevel(`${prefix}${file}/`, e.level, ops, pass) });

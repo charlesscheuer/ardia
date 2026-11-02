@@ -24,6 +24,10 @@ export async function openProfileIconPicker(profileId: string, windowId: string,
 
 export const closeProfileIconPicker = () => useProfileIconPicker.setState({ picker: null });
 
+export function closeProfileIconPickerIfShown(picker: ProfileIconPicker) {
+  if (useProfileIconPicker.getState().picker === picker) closeProfileIconPicker();
+}
+
 export function closeProfileIconPickerIn(windowId: string) {
   if (profileIconPickerIn(windowId)) closeProfileIconPicker();
 }

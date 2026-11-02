@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useProfile } from "../../state/browser/hooks";
-import { chooseProfileIcon, closeProfileIconPicker, useProfileIconPicker, type ProfileIconPicker as Picker } from "../../state/profiles/iconPicker";
+import { chooseProfileIcon, closeProfileIconPicker, closeProfileIconPickerIfShown, useProfileIconPicker, type ProfileIconPicker as Picker } from "../../state/profiles/iconPicker";
 import { IconPickerLayer, nearAnchor } from "../iconPicker/IconPickerPanel";
 import { PROFILE_SYMBOLS } from "./ProfileIcons";
 
@@ -10,11 +10,11 @@ export function ProfileIconPicker({ windowId }: { windowId: string }) {
 }
 
 function PickerFor({ picker }: { picker: Picker }) {
-  const current = useProfile(picker.profileId, (p) => (p ? p.icon : undefined));
+  const current = useProfile(picker.profileId, (p) => (p ? (p.icon ?? null) : undefined));
   const gone = current === undefined;
   useEffect(() => {
-    if (gone) closeProfileIconPicker();
-  }, [gone]);
+    if (gone) closeProfileIconPickerIfShown(picker);
+  }, [gone, picker]);
   if (gone) return null;
   return (
     <IconPickerLayer

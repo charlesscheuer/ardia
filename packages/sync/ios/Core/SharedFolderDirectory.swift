@@ -327,13 +327,16 @@ public struct SharedFolderDirectory {
     let housekeeping: Set<String> = [Self.manifestName, ".\(Self.manifestName)\(Self.placeholderSuffix)", ".DS_Store"]
     let names = try fileManager.contentsOfDirectory(atPath: url.path)
     guard names.allSatisfy(housekeeping.contains) else { return }
+    let manifest = url.appendingPathComponent(Self.manifestName)
+    let order = Self.kind(of: manifest.path) == .file ? Self.boundedRead(manifest.path, limit: Self.maxManifestBytes) : nil
     for name in housekeeping {
       let item = url.appendingPathComponent(name).path
       if Self.kind(of: item) == .file { unlink(item) }
     }
-    if rmdir(url.path) != 0, errno != ENOTEMPTY, errno != ENOENT, errno != EEXIST {
-      throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno))
-    }
+    guard rmdir(url.path) != 0 else { return }
+    let code = errno
+    if let order, Self.kind(of: manifest.path) == .missing { try? order.write(to: manifest, options: .atomic) }
+    if code != ENOTEMPTY, code != ENOENT, code != EEXIST { throw NSError(domain: NSPOSIXErrorDomain, code: Int(code)) }
   }
 
   private func coordinate(writing url: URL, options: NSFileCoordinator.WritingOptions, _ body: (URL) throws -> Void) throws {

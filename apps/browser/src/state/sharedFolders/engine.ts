@@ -3,8 +3,8 @@ import { pinKeyOf } from "../browser/model";
 import { fromSync } from "../pins/pinOrderChoices";
 import { sessionSaved } from "../session/persist";
 import { saveBeforeQuit } from "../app/quit";
-import { guardGroupClose } from "../groups/closeGuard";
-import { confirmRemovingShared } from "./removal";
+import { guardGroupClose, keepGroupsOpen } from "../groups/closeGuard";
+import { confirmRemovingShared, sharedFolderOfGroup } from "./removal";
 import { isRegularWindow } from "../windows/small";
 import { onSharedFolderChange, readSharedFolder, sharedFoldersAvailable, watchSharedFolders, writeSharedFolder } from "../../platform/sharedFolders";
 import { APPLIED_FIELDS, withFolder } from "./applyFolder";
@@ -61,8 +61,12 @@ export function syncFolderNow(profileId: string, key: string): Promise<void> {
     queued.add(ref);
     return busy;
   }
+  const bound = sharedFolderOf(profileId, key);
   const run = round(profileId, key)
-    .catch((error: unknown) => setFolderSync(profileId, key, { state: "error", error: error instanceof Error ? error.message : String(error) }))
+    .catch((error: unknown) => {
+      if (sharedFolderOf(profileId, key) !== bound) return void queued.add(ref);
+      setFolderSync(profileId, key, { state: "error", error: error instanceof Error ? error.message : String(error) });
+    })
     .finally(() => {
       running.delete(ref);
       if (queued.delete(ref)) schedule(profileId, key, REMOTE_SETTLE_MS);
@@ -144,6 +148,7 @@ let checkTimer: ReturnType<typeof setTimeout> | undefined;
 export function startSharedFolders() {
   if (!sharedFoldersAvailable()) return;
   guardGroupClose(confirmRemovingShared);
+  keepGroupsOpen((groupId) => !!sharedFolderOfGroup(store(), groupId));
   saveBeforeQuit(saveFoldersNow);
   watchBound();
   useSharedFolders.subscribe((s, prev) => {

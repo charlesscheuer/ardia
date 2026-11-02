@@ -12,6 +12,7 @@ const pending = new Map();
 const failing = new Set();
 const unstageable = new Set();
 let duringRead = async () => {};
+const byPath = new Map();
 let listing = { exists: true, root: { entries: [], manifest: null, manifestPending: false } };
 
 function land(name) {
@@ -46,12 +47,12 @@ globalThis.acTestNativeModules = {
   },
   ArdiaSharedFolders: {
     location: () => ({ path: "/scratch/Ardia Shared", iCloudAvailable: true, iCloudPath: "/scratch" }),
-    read: async () => {
-      const now = listing;
+    read: async (path) => {
+      const now = byPath.get(path) ?? listing;
       await duringRead();
       return now;
     },
-    apply: async (_path, ops) => (events.push(`apply ${JSON.parse(ops).length}`), files.set("ops", JSON.parse(ops)), { conflicts: [] }),
+    apply: async (path, ops) => (events.push(`apply ${path} ${JSON.parse(ops).length}`), files.set("ops", JSON.parse(ops)), { conflicts: [] }),
     create: async (parent, name) => `${parent}/${name}`,
     watch: () => {},
     addListener: () => ({ remove() {} }),
@@ -76,6 +77,7 @@ function fresh() {
   unstageable.clear();
   listing = { exists: true, root: { entries: [], manifest: null, manifestPending: false } };
   duringRead = async () => {};
+  byPath.clear();
 }
 
 function setup() {
@@ -140,17 +142,33 @@ test("a session snapshot that never got staged stops the round too, and is stage
 test("a folder unbound and bound again while its round reads changes neither binding", async () => {
   const { profileId, key } = setup();
   await wait(900);
-  listing = { exists: true, root: { entries: [{ kind: "link", file: "Old.webloc", text: webloc("https://old-folder.example/") }], manifest: null, manifestPending: false } };
+  const oldPath = "/scratch/Ardia Shared/Team";
+  byPath.set(oldPath, { exists: true, root: { entries: [{ kind: "link", file: "Old.webloc", text: webloc("https://old-folder.example/") }], manifest: null, manifestPending: false } });
   duringRead = async () => {
+    duringRead = async () => {};
     unbindFolder(profileId, key);
     bindFolder(profileId, key, "/scratch/Ardia Shared/Elsewhere");
   };
   await syncFolderNow(profileId, key);
-  duringRead = async () => {};
-  assert.deepEqual(events.filter((e) => e.startsWith("apply")), [], "nothing is written for the old binding");
+  await wait(400);
+  await syncFolderNow(profileId, key);
+  assert.deepEqual(events.filter((e) => e.startsWith(`apply ${oldPath} `)), [], "nothing is written for the old binding");
   assert.equal(sharedFolderOf(profileId, key).path, "/scratch/Ardia Shared/Elsewhere");
-  assert.deepEqual(sharedFolderOf(profileId, key).base, [], "the new binding's base is untouched");
+  assert.ok(!sharedFolderOf(profileId, key).base.some((b) => b.url === "https://old-folder.example/"), "the new binding never takes the old folder's links");
   assert.ok(!Object.values(S().tabs).some((t) => t.pinnedUrl === "https://old-folder.example/"), "the old folder's links aren't imported");
+});
+
+test("a read that fails after the folder was bound again doesn't mark the new binding as failing", async () => {
+  const { profileId, key } = setup();
+  await wait(900);
+  duringRead = async () => {
+    duringRead = async () => {};
+    unbindFolder(profileId, key);
+    bindFolder(profileId, key, "/scratch/Ardia Shared/Fresh");
+    throw new Error("the old disk went away");
+  };
+  await syncFolderNow(profileId, key);
+  assert.notEqual(useSharedFolders.getState().sync[`${profileId}\u0001${key}`]?.state, "error");
 });
 
 test("Share Folder doesn't open the share sheet when the folder's first sync failed", async () => {

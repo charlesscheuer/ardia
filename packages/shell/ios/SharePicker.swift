@@ -9,7 +9,7 @@ enum SharePicker {
     let window = windowId.flatMap { WindowManager.shared.window($0) } ?? NSApp.keyWindow
     guard let link = URL(string: url) else { return done() }
     guard let window, let view = window.contentView else {
-      ArdiaWebView.removeSharedImage(link)
+      if link.isFileURL { ArdiaWebView.removeSharedImage(link) }
       return done()
     }
     var rect = NSRect(x: view.bounds.midX - 1, y: view.isFlipped ? 40 : view.bounds.maxY - 42, width: 2, height: 2)
@@ -25,7 +25,7 @@ enum SharePicker {
     if LaunchConfig.shared.background {
       log("share sheet (not shown): \(describe(url, title)) window=#\(window.windowNumber) anchor=\(NSStringFromRect(rect))"
         + " services=\(services(for: [link as NSURL]).map(\.title).joined(separator: "|"))")
-      ArdiaWebView.removeSharedImage(link)
+      if link.isFileURL { ArdiaWebView.removeSharedImage(link) }
       return done()
     }
     delegate.finish()

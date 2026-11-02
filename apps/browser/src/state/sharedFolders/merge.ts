@@ -75,6 +75,7 @@ function mergeLevel(base: BaseEntry[], local: LocalEntry[], remote: RemoteLevel,
       const ownsFile = owned(r) && (!ctx.baseOwner.has(fileId!) || ctx.baseOwner.get(fileId!) === b);
       const id = ownsFile ? fileId : b.id && (ctx.baseOwner.get(b.id) ?? b) === b ? b.id : null;
       const heldName = r.kind === "held" ? b.name : null;
+      if (r.kind === "held" && r.waiting) ctx.waiting += 1;
       entries.push({ kind: "link", key: b.key, file: r.file, name, url, renamed: localRenamed, write: remoteUrl === null ? localMoved : url !== remoteUrl, expect: remoteUrl ?? b.url, id, fileId, heldName });
     } else if (here.kind === "dir" && b.kind === "dir" && r.kind === "dir") {
       entries.push({ kind: "dir", key: b.key, file: r.file, name, renamed: localRenamed, level: mergeLevel(b.children, here.children, r.level, ctx) });
