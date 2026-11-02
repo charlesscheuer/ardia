@@ -263,6 +263,7 @@ test("the sidebar background menu: new things, then the sidebar toggles, Close A
     "---",
     "New Group [folder.badge.plus]",
     "New Live Folder ›",
+    "Add Shared Folder… [person.2]",
     "---",
     "New Profile… [plus]",
     "---",

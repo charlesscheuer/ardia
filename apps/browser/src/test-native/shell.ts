@@ -140,12 +140,14 @@ const documents: Modules["ArdiaDocuments"] = {
       if (heldSaves.on) heldSaves.queue.push(land);
       else land();
     }),
+  documentSaved: () => Promise.resolve(),
   removeDocument: (name) => void docs.delete(name),
 };
 
 const app: Modules["ArdiaApp"] = {
   setWindowActivity: () => Promise.resolve(),
   share: () => Promise.resolve(),
+  shareText: () => Promise.resolve(),
   shareVia: () => Promise.resolve(),
   isInDock: () => Promise.resolve(false),
   addToDock: () => Promise.resolve(false),

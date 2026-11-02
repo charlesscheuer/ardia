@@ -30,6 +30,7 @@ import { closeFolderPanelIn } from "../../state/sidebar/tileFolderUi";
 import { popupBlocked, showAutofillPrompt, showPasswordPrompt } from "../../state/site/prompts";
 import { leftPage } from "../../state/tabs/pageEvents";
 import { copyLinkToSelection, searchSelection, setPageSelection } from "../../state/site/selection";
+import { shareFromPage } from "../../state/site/share";
 import { useAutoPictureInPicture } from "../../state/media/pip";
 import { requestDisplayMedia } from "../../state/media/screenShare";
 import { setNowPlaying, setPictureInPictureState } from "../../state/media/media";
@@ -216,8 +217,9 @@ function EngineWebView({ tabId, visible, warm, peekOf, engine }: TabWebViewProps
       onPagePress={() => activateFocusedPane(tabId)}
       onWindowClose={() => !isQuitting() && closeTabNow(tabId)}
       onNotification={(notification) => showWebNotification(tabId, notification)}
-      onCommand={({ command, text, modifiers }) => {
+      onCommand={({ command, text, modifiers, share, anchor }) => {
         if (command === "search") searchSelection(tabId, text, modifiers);
+        else if (command === "share" && share) void shareFromPage(tab(), share, anchor);
         else if (command === "copyLinkToHighlight") void copyLinkToSelection(tabId);
         else if (command === "escape" && popoverOf(tabId)) setPopover(tabId, null);
         else if (command === "escape" && !closeFolderPanelIn(tab()?.windowId) && !closePeekOnEscape(tabId)) closeLittleArdiaOnEscape(tabId);
