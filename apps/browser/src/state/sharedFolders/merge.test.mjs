@@ -452,7 +452,19 @@ test("file names are capped by their UTF-8 bytes, so long titles in any script s
 
 test("an order file from a newer version is left alone", async () => {
   const { remoteLevel } = await import("./remote.ts");
-  const level = remoteLevel({ entries: [], manifest: JSON.stringify({ version: 2, order: ["a"] }), manifestPending: false });
-  assert.equal(level.manifestPending, true);
-  assert.equal(remoteLevel({ entries: [], manifest: "{", manifestPending: false }).manifestPending, false, "junk is replaced");
+  const manifestWrites = (manifest) => {
+    const fs = dir({ "A.webloc": { url: "https://a.example/" }, "B.webloc": { url: "https://b.example/" } });
+    const m = mac();
+    cycle(m, fs);
+    m.local = [...m.local].reverse();
+    const listing = {
+      entries: read(fs).entries.map((e) => ({ kind: "link", file: e.file, text: weblocText(e.url, e.id) })),
+      manifest,
+      manifestPending: false,
+    };
+    const { level } = mergeFolder(m.base, m.local, remoteLevel(listing));
+    return planFiles(level, m.base).ops.filter((o) => o.op === "write" && o.path === MANIFEST);
+  };
+  assert.deepEqual(manifestWrites(JSON.stringify({ version: 2, order: ["A.webloc", "B.webloc"] })), []);
+  assert.equal(manifestWrites("{").length, 1, "junk is replaced");
 });

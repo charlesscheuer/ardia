@@ -21,7 +21,7 @@ export const canShareGroup = (s: Pick<BrowserState, "groups">, groupId: string) 
 };
 
 export function folderLabel(path: string): string {
-  const { iCloudPath } = sharedLocation();
+  const iCloudPath = sharedFoldersAvailable() ? sharedLocation().iCloudPath : null;
   if (iCloudPath && path.startsWith(`${iCloudPath}/`)) return ["iCloud Drive", ...path.slice(iCloudPath.length + 1).split("/")].join(" › ");
   return path;
 }

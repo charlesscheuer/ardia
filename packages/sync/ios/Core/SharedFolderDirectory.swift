@@ -319,7 +319,8 @@ public struct SharedFolderDirectory {
   private func removeEmptyDirectory(_ url: URL) throws {
     guard Self.kind(of: url.path) == .directory else { return }
     let housekeeping: Set<String> = [Self.manifestName, ".\(Self.manifestName)\(Self.placeholderSuffix)", ".DS_Store"]
-    guard let names = try? fileManager.contentsOfDirectory(atPath: url.path), names.allSatisfy(housekeeping.contains) else { return }
+    let names = try fileManager.contentsOfDirectory(atPath: url.path)
+    guard names.allSatisfy(housekeeping.contains) else { return }
     for name in housekeeping {
       let item = url.appendingPathComponent(name).path
       if Self.kind(of: item) == .file { unlink(item) }
